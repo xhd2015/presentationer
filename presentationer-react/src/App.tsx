@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import CodePresenter from './components/CodePresenter';
 import DemoCode from './components/DemoCode';
+import IMThreadGenerator from './components/IMThreadGenerator';
 import './App.css';
 
 function Home() {
@@ -17,6 +18,10 @@ function Home() {
         <Link to="/demo" style={{ fontSize: '18px', color: '#646cff', textDecoration: 'none' }}>
           Go to Demo Highlight
         </Link>
+        <br />
+        <Link to="/im-thread" style={{ fontSize: '18px', color: '#646cff', textDecoration: 'none' }}>
+          Go to IM Thread Generator
+        </Link>
       </div>
     </div>
   );
@@ -31,12 +36,14 @@ function App() {
           <Link to="/">Home</Link>
           <Link to="/code-presenter">Code Presenter</Link>
           <Link to="/demo">Demo</Link>
+          <Link to="/im-thread">IM Thread</Link>
         </nav>
 
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/code-presenter" element={<CodePresenter />} />
           <Route path="/demo" element={<DemoCode />} />
+          <Route path="/im-thread" element={<IMThreadGenerator />} />
         </Routes>
       </div>
     </Router>

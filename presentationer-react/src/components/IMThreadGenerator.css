@@ -1,0 +1,284 @@
+.im-thread-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    height: calc(100vh - 100px);
+}
+
+.im-config-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.im-json-input {
+    width: 100%;
+    flex-grow: 1;
+    font-family: monospace;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    resize: none;
+}
+
+.im-error {
+    color: #ff6b6b;
+    font-size: 0.9em;
+}
+
+.im-preview-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f0f2f5;
+    width: fit-content;
+    padding: 20px;
+    border-radius: 8px;
+    overflow: auto;
+}
+
+.im-phone-frame {
+    width: 375px;
+    height: 100%;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    resize: both;
+    overflow: auto;
+    /* Needed for resize handle to appear in some browsers */
+}
+
+.im-thread-header {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.im-header-left,
+.im-header-right {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    color: black;
+    /* Typical link color for back buttons */
+    cursor: pointer;
+}
+
+.im-header-right {
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #333;
+}
+
+.im-header-center {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.im-thread-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+}
+
+.im-thread-subtitle {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 2px;
+}
+
+.im-chat-screen {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Root Message Styles */
+.im-message-root {
+    padding: 20px 20px 10px 20px;
+}
+
+.im-root-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.im-root-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.im-sender-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.im-bot-tag {
+    background-color: #fffadb;
+    color: #ffca34;
+    font-size: 0.6em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.im-root-info .im-sender-name {
+    font-weight: bold;
+    color: #000;
+    font-size: 1em;
+}
+
+.im-root-info .im-time {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.im-root-content {
+    font-size: 1.1em;
+    line-height: 1.5;
+    color: #1d1d1d;
+    margin-bottom: 15px;
+}
+
+.im-reply-count-divider {
+    font-size: 0.85em;
+    color: #666;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.im-reply-count-divider::before {
+    display: none;
+}
+
+.im-reply-count-divider::after {
+    content: "";
+    flex-grow: 1;
+    height: 1px;
+    background-color: #eee;
+    margin-left: 10px;
+}
+
+/* Replies Styles */
+.im-replies-list {
+    padding: 0 20px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.im-reply-row {
+    display: flex;
+    gap: 12px;
+}
+
+.im-reply-body {
+    flex-grow: 1;
+    background-color: #f9f9f9;
+    /* Slight grey background for bubbles if desired, or keep white */
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+/* For a cleaner look like Slack threads, maybe no background on bubble, just text? 
+   But the request asked for indented messages. 
+   Let's stick to a clean list look. 
+*/
+.im-reply-body {
+    background-color: transparent;
+    padding: 0;
+}
+
+.im-reply-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.im-reply-header .im-sender-name {
+    font-weight: 600;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.im-reply-header .im-time {
+    font-size: 0.75em;
+    color: #999;
+    margin-left: auto;
+}
+
+.im-reply-content {
+    font-size: 0.95em;
+    color: #333;
+    line-height: 1.4;
+}
+
+/* Shared Avatar */
+.im-avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+
+.im-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    /* Slack uses rounded rects usually, or circle */
+    border-radius: 50%;
+    /* Let's stick to circle */
+    object-fit: cover;
+}
+
+.im-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.im-inline-code {
+    background-color: #f2f3f5;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", "Source Code Pro", monospace;
+    font-size: 0.9em;
+    color: #474747;
+    border: 1px solid #e3e3e3;
+}
+
+.im-mention {
+    color: #007bff;
+    font-weight: 500;
+}
