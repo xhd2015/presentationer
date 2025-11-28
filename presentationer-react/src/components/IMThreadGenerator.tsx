@@ -125,7 +125,7 @@ const IMThreadGenerator: React.FC = () => {
                         <div className="im-header-center">
                             <div className="im-thread-title">Thread</div>
                             <div className="im-thread-subtitle">
-                                Following . {uniqueSenderCount} followers
+                                Following • {uniqueSenderCount} followers
                             </div>
                         </div>
                         <div className="im-header-right">
