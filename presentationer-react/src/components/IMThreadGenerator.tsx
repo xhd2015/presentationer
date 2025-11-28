@@ -28,14 +28,14 @@ const DEFAULT_JSON = `[
   },
   {
     "sender": "Charlie",
-    "content": "Looks good to me. When can we review it?",
+    "content": "Looks good to me. When can we review it? @Support Bot",
     "sendTime": "10:10 AM",
     "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie",
     "isMe": false
   },
   {
     "sender": "Support Bot",
-    "content": "I have scheduled a meeting for 11:00 AM.",
+    "content": "I have scheduled a meeting for 11:00 AM. `+ '`{\\"data\\":\\"success\\"}`' + `",
     "sendTime": "10:11 AM",
     "is_bot": true
   }
