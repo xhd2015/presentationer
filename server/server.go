@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"path/filepath"
 	"time"
 
@@ -19,7 +21,7 @@ func Init(fs embed.FS) {
 	distFS = fs
 }
 
-func Serve(port int) error {
+func Serve(port int, dev bool) error {
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", port),
@@ -28,11 +30,19 @@ func Serve(port int) error {
 		Handler:      mux,
 	}
 
-	err := Static(mux)
-	if err != nil {
-		return err
+	if dev {
+		err := ProxyDev(mux)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := Static(mux)
+		if err != nil {
+			return err
+		}
 	}
-	err = RegisterAPI(mux)
+
+	err := RegisterAPI(mux)
 	if err != nil {
 		return err
 	}
@@ -45,6 +55,21 @@ func Serve(port int) error {
 	}()
 
 	return server.ListenAndServe()
+}
+
+func ProxyDev(mux *http.ServeMux) error {
+	targetURL, err := url.Parse("http://localhost:5173")
+	if err != nil {
+		return fmt.Errorf("invalid proxy target: %v", err)
+	}
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	// Proxy everything else to the frontend dev server
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		r.Host = targetURL.Host
+		proxy.ServeHTTP(w, r)
+	})
+	return nil
 }
 
 func Static(mux *http.ServeMux) error {
@@ -89,6 +114,7 @@ func Static(mux *http.ServeMux) error {
 func RegisterAPI(mux *http.ServeMux) error {
 	// ping
 	mux.HandleFunc("/ping", handlePing)
+	RegisterSessionRoutes(mux)
 
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/xhd2015/kool/pkgs/web"
+	"github.com/xhd2015/less-gen/flags"
 	"github.com/xhd2015/presentationer/server"
 )
 
@@ -16,20 +17,22 @@ Subcommands:
 `
 
 func Run(args []string) error {
+	var devFlag bool
+	args, err := flags.Bool("--dev", &devFlag).
+		Help("-h,--help", help).
+		Parse(args)
+	if err != nil {
+		return err
+	}
+
 	if len(args) > 0 {
-		cmd := args[0]
-		args = args[1:]
-		if cmd == "--help" || cmd == "help" {
-			fmt.Print(strings.TrimPrefix(help, "\n"))
-			return nil
-		}
+		return fmt.Errorf("unrecognized extra args: %s", strings.Join(args, " "))
 	}
 
 	// next port
-
 	port, err := web.FindAvailablePort(8080, 100)
 	if err != nil {
 		return err
 	}
-	return server.Serve(port)
+	return server.Serve(port, devFlag)
 }

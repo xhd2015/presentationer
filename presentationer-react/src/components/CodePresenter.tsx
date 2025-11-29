@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { toPng } from 'html-to-image';
 import toast from 'react-hot-toast';
 import { CodeEditor } from './code-presenter/CodeEditor';
@@ -7,13 +7,41 @@ import { PreviewPanel } from './code-presenter/PreviewPanel';
 
 import { parseLineConfig } from './code-presenter/focus';
 
-const CodePresenter: React.FC = () => {
-  const [code, setCode] = useState<string>(`package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, World!")\n}`);
-  const [configList, setConfigList] = useState<ConfigItem[]>([]);
-  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
-  const [showHtml, setShowHtml] = useState<boolean>(false);
-  const [exportWidth, setExportWidth] = useState<string>('');
-  const [exportHeight, setExportHeight] = useState<string>('');
+export interface CodePresenterState {
+  code: string;
+  configList: ConfigItem[];
+  selectedConfigId: string | null;
+  exportWidth: string;
+  exportHeight: string;
+  showHtml: boolean;
+}
+
+export interface CodePresenterProps {
+  initialState?: Partial<CodePresenterState>;
+}
+
+export interface CodePresenterRef {
+  getState: () => CodePresenterState;
+}
+
+const CodePresenter = forwardRef<CodePresenterRef, CodePresenterProps>(({ initialState }, ref) => {
+  const [code, setCode] = useState<string>(initialState?.code || `package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, World!")\n}`);
+  const [configList, setConfigList] = useState<ConfigItem[]>(initialState?.configList || []);
+  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(initialState?.selectedConfigId || null);
+  const [showHtml, setShowHtml] = useState<boolean>(initialState?.showHtml || false);
+  const [exportWidth, setExportWidth] = useState<string>(initialState?.exportWidth || '');
+  const [exportHeight, setExportHeight] = useState<string>(initialState?.exportHeight || '');
+
+  useImperativeHandle(ref, () => ({
+    getState: () => ({
+      code,
+      configList,
+      selectedConfigId,
+      exportWidth,
+      exportHeight,
+      showHtml
+    })
+  }));
 
   const previewRef = useRef<HTMLDivElement>(null!);
 
@@ -121,6 +149,8 @@ const CodePresenter: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+CodePresenter.displayName = 'CodePresenter';
 
 export default CodePresenter;

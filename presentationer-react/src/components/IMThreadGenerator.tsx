@@ -1,15 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { FiChevronLeft, FiMoreHorizontal } from 'react-icons/fi';
 import './IMThreadGenerator.css';
-
-interface Message {
-    sender: string;
-    content: string;
-    sendTime: string;
-    avatar?: string;
-    isMe?: boolean;
-    is_bot?: boolean;
-}
+import { MessageInput } from './im/MessageInput';
+import { type Message } from './im/types';
 
 const DEFAULT_JSON = `[
   {
@@ -41,9 +34,23 @@ const DEFAULT_JSON = `[
   }
 ]`;
 
-const IMThreadGenerator: React.FC = () => {
-    const [jsonInput, setJsonInput] = useState<string>(DEFAULT_JSON);
+export interface IMThreadGeneratorRef {
+    getState: () => string;
+}
+
+export interface IMThreadGeneratorProps {
+    initialState?: string;
+    onResolveAvatarUrl?: (avatarName: string) => string;
+    onListAvatars?: () => Promise<string[]>;
+}
+
+const IMThreadGenerator = forwardRef<IMThreadGeneratorRef, IMThreadGeneratorProps>(({ initialState, onResolveAvatarUrl, onListAvatars }, ref) => {
+    const [jsonInput, setJsonInput] = useState<string>(initialState || DEFAULT_JSON);
     const [error, setError] = useState<string | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        getState: () => jsonInput
+    }));
 
     const messages = useMemo<Message[]>(() => {
         try {
@@ -67,15 +74,27 @@ const IMThreadGenerator: React.FC = () => {
         return senders.size;
     }, [messages]);
 
-    const renderAvatar = (msg: Message) => (
-        <div className="im-avatar">
-            {msg.avatar ? (
-                <img src={msg.avatar} alt={msg.sender} />
-            ) : (
-                <div className="im-avatar-placeholder">{msg.sender[0]}</div>
-            )}
-        </div>
-    );
+    const resolveAvatar = (avatar?: string) => {
+        if (!avatar) return null;
+        if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar;
+        if (onResolveAvatarUrl) {
+            return onResolveAvatarUrl(avatar);
+        }
+        return avatar;
+    };
+
+    const renderAvatar = (msg: Message) => {
+        const avatarSrc = resolveAvatar(msg.avatar);
+        return (
+            <div className="im-avatar">
+                {avatarSrc ? (
+                    <img src={avatarSrc} alt={msg.sender} />
+                ) : (
+                    <div className="im-avatar-placeholder">{msg.sender[0]}</div>
+                )}
+            </div>
+        );
+    };
 
     const renderBotTag = (isBot?: boolean) => {
         if (!isBot) return null;
@@ -105,14 +124,16 @@ const IMThreadGenerator: React.FC = () => {
 
     return (
         <div className="im-thread-container">
-            <div className="im-config-panel">
-                <h3>Message Config (JSON)</h3>
-                <textarea
-                    value={jsonInput}
-                    onChange={(e) => setJsonInput(e.target.value)}
-                    className="im-json-input"
-                    rows={20}
-                />
+            <div className="im-config-panel" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <h3>Message Config</h3>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <MessageInput
+                        value={jsonInput}
+                        onChange={setJsonInput}
+                        onResolveAvatarUrl={onResolveAvatarUrl}
+                        onListAvatars={onListAvatars}
+                    />
+                </div>
                 {error && <div className="im-error">{error}</div>}
             </div>
             <div className="im-preview-panel">
@@ -179,6 +200,8 @@ const IMThreadGenerator: React.FC = () => {
             </div>
         </div>
     );
-};
+});
+
+IMThreadGenerator.displayName = 'IMThreadGenerator';
 
 export default IMThreadGenerator;
