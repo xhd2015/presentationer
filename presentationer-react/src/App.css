@@ -1,7 +1,11 @@
 #root {
+  width: 100%;
   max-width: 100%;
   margin: 0;
   padding: 0;
+  display: flex;
+  /* Ensure root behaves as a container if needed, usually block is fine but for full height apps flex is good */
+  flex-direction: column;
 }
 
 .app-container {
@@ -19,12 +23,12 @@ nav a:hover {
 }
 
 button {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
 button:hover {
-    background-color: #eee;
+  background-color: #eee;
 }

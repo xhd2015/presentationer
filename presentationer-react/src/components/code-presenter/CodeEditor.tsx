@@ -3,12 +3,13 @@ import React from 'react';
 interface CodeEditorProps {
     code: string;
     onChange: (newCode: string) => void;
+    language?: string;
 }
 
-export const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange }) => {
+export const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, language }) => {
     return (
         <label>
-            <strong>Code Input (Go):</strong>
+            <strong>Code Input ({language || 'Go'}):</strong>
             <textarea
                 value={code}
                 onChange={(e) => onChange(e.target.value)}

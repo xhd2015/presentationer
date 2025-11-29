@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { FiChevronLeft, FiMoreHorizontal } from 'react-icons/fi';
 import { PreviewContainer } from '../common/PreviewContainer';
 import { type Message } from './types';
@@ -7,9 +7,22 @@ import '../IMThreadGenerator.css';
 interface IMPreviewProps {
     jsonInput: string;
     onResolveAvatarUrl?: (avatarName: string) => string;
+    exportWidth?: string;
+    exportHeight?: string;
+    onDimensionsChange?: (width: number, height: number) => void;
 }
 
-export const IMPreview: React.FC<IMPreviewProps> = ({ jsonInput, onResolveAvatarUrl }) => {
+export const IMPreview: React.FC<IMPreviewProps> = ({
+    jsonInput,
+    onResolveAvatarUrl,
+    exportWidth,
+    exportHeight,
+    onDimensionsChange
+}) => {
+    // Initialize visual state to default 425x800, immune to exportWidth/Height inputs
+    const [visualWidth, setVisualWidth] = useState(425);
+    const [visualHeight, setVisualHeight] = useState(800);
+
     const messages = useMemo<Message[]>(() => {
         try {
             const parsed = JSON.parse(jsonInput);
@@ -53,10 +66,24 @@ export const IMPreview: React.FC<IMPreviewProps> = ({ jsonInput, onResolveAvatar
         });
     };
 
+    const innerStyle = {
+        width: `${visualWidth}px`,
+        height: `${visualHeight}px`
+    };
+
+    const handleDimensionsChange = useCallback((w: number, h: number) => {
+        setVisualWidth(w);
+        setVisualHeight(h);
+        onDimensionsChange?.(w, h);
+    }, [onDimensionsChange]);
+
     return (
         <PreviewContainer
             title="Preview"
-            wrapperStyle={{ width: '425px', height: '800px' }}
+            style={innerStyle}
+            exportWidth={exportWidth}
+            exportHeight={exportHeight}
+            onDimensionsChange={handleDimensionsChange}
         >
             <div className="im-phone-frame">
                 <div className="im-thread-header">

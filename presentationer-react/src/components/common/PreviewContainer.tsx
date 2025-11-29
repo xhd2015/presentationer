@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { useExportPng } from '../../hooks/useExportPng';
 import { Menu, type MenuItem } from './Menu';
 
@@ -12,6 +13,7 @@ export interface PreviewContainerProps {
     className?: string;
     onExportPng?: () => void;
     onCopyPng?: () => void;
+    onCopyHtml?: () => void;
     exportWidth?: string;
     exportHeight?: string;
 }
@@ -26,6 +28,7 @@ export const PreviewContainer: React.FC<PreviewContainerProps> = ({
     className,
     onExportPng,
     onCopyPng,
+    onCopyHtml,
     exportWidth,
     exportHeight,
 }) => {
@@ -37,12 +40,45 @@ export const PreviewContainer: React.FC<PreviewContainerProps> = ({
     const handleExport = onExportPng || defaultExport;
     const handleCopy = onCopyPng || defaultCopy;
 
+    const handleCopyHtmlDefault = async () => {
+        if (!ref.current) return;
+        try {
+            const html = ref.current.innerHTML;
+            const text = ref.current.innerText;
+
+            // Create a Blob for HTML content
+            const blobHtml = new Blob([html], { type: 'text/html' });
+            // Create a Blob for plain text fallback
+            const blobText = new Blob([text], { type: 'text/plain' });
+
+            const data = [new ClipboardItem({
+                'text/html': blobHtml,
+                'text/plain': blobText,
+            })];
+
+            await navigator.clipboard.write(data);
+            toast.success('Copied HTML');
+        } catch (e) {
+            console.error('Failed to copy', e);
+            toast.error('Failed to copy');
+        }
+    };
+
+    const handleCopyHtml = onCopyHtml || handleCopyHtmlDefault;
+
     const menuItems: MenuItem[] = [];
-    if (handleExport) {
-        menuItems.push({ label: 'Export PNG', onClick: handleExport, hasSeparator: !!handleCopy });
-    }
+    // Copy is likely frequent, put it first or with PNG options?
+    // Usually "Copy" is common.
+    // "Copy"
+    // "Copy as PNG"
+    // "Export PNG"
+    menuItems.push({ label: 'Copy', onClick: handleCopyHtml, hasSeparator: !!handleCopy || !!handleExport });
+
     if (handleCopy) {
-        menuItems.push({ label: 'Copy as PNG', onClick: handleCopy });
+        menuItems.push({ label: 'Copy as PNG', onClick: handleCopy, hasSeparator: !!handleExport });
+    }
+    if (handleExport) {
+        menuItems.push({ label: 'Export PNG', onClick: handleExport });
     }
 
     useEffect(() => {

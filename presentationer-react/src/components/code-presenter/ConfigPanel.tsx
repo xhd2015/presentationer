@@ -9,33 +9,30 @@ export interface ConfigItem {
 }
 
 interface ConfigPanelProps {
-    exportWidth: string;
-    setExportWidth: (width: string) => void;
-    exportHeight: string;
-    setExportHeight: (height: string) => void;
-
     configList: ConfigItem[];
     setConfigList: (configs: ConfigItem[]) => void;
     selectedConfigId: string | null;
     setSelectedConfigId: (id: string | null) => void;
 
-    onExportPng?: () => void;
-    onCopyPng?: () => void;
+    language?: string;
+    setLanguage?: (lang: string) => void;
+
     showHtml: boolean;
     setShowHtml: (show: boolean) => void;
 }
 
+const SUPPORTED_LANGUAGES = [
+    'go', 'typescript', 'javascript', 'python', 'java', 'c', 'cpp', 'csharp', 'rust',
+    'bash', 'json', 'yaml', 'sql', 'html', 'css', 'markdown'
+];
+
 export const ConfigPanel: React.FC<ConfigPanelProps> = ({
-    exportWidth,
-    setExportWidth,
-    exportHeight,
-    setExportHeight,
     configList,
     setConfigList,
     selectedConfigId,
     setSelectedConfigId,
-    onExportPng,
-    onCopyPng,
+    language,
+    setLanguage,
     showHtml,
     setShowHtml,
 }) => {
@@ -86,31 +83,25 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
     return (
         <>
-            <div style={{ border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
-                <strong>Config:</strong>
-
-                <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+            {setLanguage && (
+                <div style={{ marginBottom: '10px' }}>
                     <label>
-                        Width (px):
-                        <input
-                            type="number"
-                            value={exportWidth}
-                            onChange={(e) => setExportWidth(e.target.value)}
-                            placeholder="Auto"
-                            style={{ marginLeft: '5px', width: '80px', padding: '4px' }}
-                        />
-                    </label>
-                    <label>
-                        Height (px):
-                        <input
-                            type="number"
-                            value={exportHeight}
-                            onChange={(e) => setExportHeight(e.target.value)}
-                            placeholder="Auto"
-                            style={{ marginLeft: '5px', width: '80px', padding: '4px' }}
-                        />
+                        <strong>Language: </strong>
+                        <select
+                            value={language || 'go'}
+                            onChange={(e) => setLanguage(e.target.value)}
+                            style={{ marginLeft: '5px', padding: '4px', borderRadius: '4px' }}
+                        >
+                            {SUPPORTED_LANGUAGES.map(lang => (
+                                <option key={lang} value={lang}>{lang}</option>
+                            ))}
+                        </select>
                     </label>
                 </div>
+            )}
+
+            <div style={{ border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
+                <strong>Config:</strong>
 
                 <div style={{ marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -206,16 +197,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-                {onExportPng && (
-                    <button onClick={onExportPng} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-                        Export to PNG
-                    </button>
-                )}
-                {onCopyPng && (
-                    <button onClick={onCopyPng} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-                        Copy PNG
-                    </button>
-                )}
                 <button onClick={() => setShowHtml(!showHtml)} style={{ padding: '8px 16px', cursor: 'pointer' }}>
                     {showHtml ? 'Hide HTML' : 'Show HTML Output'}
                 </button>

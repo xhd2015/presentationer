@@ -6,6 +6,7 @@ import { parseLineConfig } from './code-presenter/focus';
 
 export interface CodePresenterState {
     code: string;
+    language?: string;
     configList: ConfigItem[];
     selectedConfigId: string | null;
     exportWidth: string;
@@ -24,6 +25,7 @@ export interface CodePresenterRef {
 
 const CodePresenterEditorPreview = forwardRef<CodePresenterRef, CodePresenterProps>(({ initialState, onChange }, ref) => {
     const [code, setCode] = useState<string>(initialState?.code || `package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, World!")\n}`);
+    const [language, setLanguage] = useState<string>(initialState?.language || 'go');
     const [configList, setConfigList] = useState<ConfigItem[]>(initialState?.configList || []);
     const [selectedConfigId, setSelectedConfigId] = useState<string | null>(initialState?.selectedConfigId || null);
     const [showHtml, setShowHtml] = useState<boolean>(initialState?.showHtml || false);
@@ -32,6 +34,7 @@ const CodePresenterEditorPreview = forwardRef<CodePresenterRef, CodePresenterPro
 
     const state = {
         code,
+        language,
         configList,
         selectedConfigId,
         exportWidth,
@@ -41,7 +44,7 @@ const CodePresenterEditorPreview = forwardRef<CodePresenterRef, CodePresenterPro
 
     useEffect(() => {
         onChange?.(state);
-    }, [code, configList, selectedConfigId, exportWidth, exportHeight, showHtml]);
+    }, [code, language, configList, selectedConfigId, exportWidth, exportHeight, showHtml]);
 
     useImperativeHandle(ref, () => ({
         getState: () => state
@@ -74,15 +77,15 @@ const CodePresenterEditorPreview = forwardRef<CodePresenterRef, CodePresenterPro
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <CodePresenterCore
                     code={code} setCode={setCode}
+                    language={language} setLanguage={setLanguage}
                     configList={configList} setConfigList={setConfigList}
                     selectedConfigId={selectedConfigId} setSelectedConfigId={setSelectedConfigId}
                     showHtml={showHtml} setShowHtml={setShowHtml}
-                    exportWidth={exportWidth} setExportWidth={setExportWidth}
-                    exportHeight={exportHeight} setExportHeight={setExportHeight}
                 />
 
                 <PreviewPanel
                     code={code}
+                    language={language}
                     isFocusMode={isFocusMode}
                     focusedLines={focusedLines}
                     showHtml={showHtml}

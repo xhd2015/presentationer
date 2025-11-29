@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { CodePresenterCore } from '../CodePresenterCore';
 import { IMEditorCore } from '../im/IMEditorCore';
 import type { CodePresenterState } from '../CodePresenterEditorPreview';
@@ -17,24 +17,25 @@ export const PageEditor: React.FC<PageEditorProps> = ({
 }) => {
     const [imError, setImError] = useState<string | null>(null);
 
-    const handleResolveAvatarUrl = (avatarName: string) => {
+    const handleResolveAvatarUrl = useCallback((avatarName: string) => {
         return getAvatarUrl(sessionName, avatarName);
-    };
+    }, [sessionName]);
 
-    const handleListAvatars = async () => {
+    const handleListAvatars = useCallback(async () => {
         try {
             return await listAvatars(sessionName);
         } catch (e) {
             console.error("Failed to list avatars", e);
             return [];
         }
-    };
+    }, [sessionName]);
 
     // Validate IM content
     useEffect(() => {
         if (page.kind === 'chat_thread') {
             try {
-                const val = page.content as string;
+                const content = page.content;
+                const val = typeof content === 'string' ? content : (content as any).json;
                 if (!val) {
                     setImError(null);
                     return;
@@ -54,28 +55,41 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         onPageUpdate?.(page.id, { ...codeState, ...partial });
     };
 
+    const getIMJson = () => {
+        if (typeof page.content === 'string') return page.content;
+        return (page.content as any)?.json || '';
+    };
+
+    const handleIMChange = (val: string) => {
+        if (!onPageUpdate) return;
+
+        if (typeof page.content === 'object' && page.content !== null) {
+            onPageUpdate(page.id, { ...page.content, json: val });
+        } else {
+            onPageUpdate(page.id, val);
+        }
+    };
+
     return (
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
             {page.kind === 'code' && (
                 <CodePresenterCore
                     code={codeState.code || ''}
                     setCode={code => updateCodeState({ code })}
+                    language={codeState.language || 'go'}
+                    setLanguage={lang => updateCodeState({ language: lang })}
                     configList={codeState.configList || []}
                     setConfigList={list => updateCodeState({ configList: list })}
                     selectedConfigId={codeState.selectedConfigId || null}
                     setSelectedConfigId={id => updateCodeState({ selectedConfigId: id })}
                     showHtml={codeState.showHtml || false}
                     setShowHtml={show => updateCodeState({ showHtml: show })}
-                    exportWidth={codeState.exportWidth || ''}
-                    setExportWidth={w => updateCodeState({ exportWidth: w })}
-                    exportHeight={codeState.exportHeight || ''}
-                    setExportHeight={h => updateCodeState({ exportHeight: h })}
                 />
             )}
             {page.kind === 'chat_thread' && (
                 <IMEditorCore
-                    jsonInput={page.content as string || ''}
-                    onChange={(val) => onPageUpdate?.(page.id, val)}
+                    jsonInput={getIMJson()}
+                    onChange={handleIMChange}
                     onResolveAvatarUrl={handleResolveAvatarUrl}
                     onListAvatars={handleListAvatars}
                     error={imError}

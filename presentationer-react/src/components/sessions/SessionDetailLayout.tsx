@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { PageListSidebar } from './PageListSidebar';
 import { SessionDetailProvider, useSessionDetailContext } from '../../context/SessionDetailContext';
@@ -7,6 +7,8 @@ import { PreviewPanel } from '../code-presenter/PreviewPanel';
 import { IMPreview } from '../im/IMPreview';
 import { parseLineConfig } from '../code-presenter/focus';
 import { getAvatarUrl } from '../../api/session';
+import { ResizableSplitPane } from '../common/ResizableSplitPane';
+import { PreviewControls } from '../common/PreviewControls';
 
 const SessionDetailContent: React.FC = () => {
     const { pages, createPage, deletePage, sessionName, saveSession, renamePage, updatePageContent } = useSessionDetailContext();
@@ -20,9 +22,50 @@ const SessionDetailContent: React.FC = () => {
     const isSettings = location.pathname.endsWith('/settings');
     const selectedPage = pages.find(p => p.title === decodedPageTitle);
     const pageId = selectedPage?.id;
+    const showPreview = !isSettings && !!selectedPage;
 
-    const exportWidth = selectedPage?.kind === 'code' ? (selectedPage.content as any).exportWidth : undefined;
-    const exportHeight = selectedPage?.kind === 'code' ? (selectedPage.content as any).exportHeight : undefined;
+    // Extract dims
+    let exportWidth: string | undefined;
+    let exportHeight: string | undefined;
+    if (selectedPage) {
+        if (selectedPage.kind === 'code') {
+            exportWidth = (selectedPage.content as any).exportWidth;
+            exportHeight = (selectedPage.content as any).exportHeight;
+        } else if (selectedPage.kind === 'chat_thread') {
+            if (typeof selectedPage.content !== 'string') {
+                exportWidth = (selectedPage.content as any).exportWidth;
+                exportHeight = (selectedPage.content as any).exportHeight;
+            }
+        }
+    }
+
+    const handleDimsChange = useCallback((w: string | undefined, h: string | undefined) => {
+        if (!selectedPage) return;
+        let newContent = selectedPage.content;
+
+        if (selectedPage.kind === 'chat_thread' && typeof newContent === 'string') {
+            newContent = { json: newContent };
+        }
+
+        const updatedContent = { ...newContent };
+        let changed = false;
+        if (w !== undefined && updatedContent.exportWidth !== w) {
+            updatedContent.exportWidth = w;
+            changed = true;
+        }
+        if (h !== undefined && updatedContent.exportHeight !== h) {
+            updatedContent.exportHeight = h;
+            changed = true;
+        }
+
+        if (changed) {
+            updatePageContent(selectedPage.id, updatedContent);
+        }
+    }, [selectedPage, updatePageContent]);
+
+    const handleIMDimensionsChange = useCallback((w: number, h: number) => {
+        handleDimsChange(w.toString(), h.toString());
+    }, [handleDimsChange]);
 
     const handleSelectPage = (id: string) => {
         const page = pages.find(p => p.id === id);
@@ -99,42 +142,48 @@ const SessionDetailContent: React.FC = () => {
                         Save Session
                     </button>
                 </div>
-                <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
-                    <div style={{ flex: 1, overflow: 'hidden', borderRight: '1px solid #eee' }}>
-                        <Outlet context={{ previewRef }} />
-                    </div>
-
-                    {!isSettings && selectedPage && (
-                        <div style={{ width: '50%', overflow: 'auto', padding: '20px', backgroundColor: '#f9f9f9' }}>
-                            {selectedPage.kind === 'code' && (
-                                <PreviewPanel
-                                    code={(selectedPage.content as any).code || ''}
-                                    isFocusMode={!!(selectedPage.content as any).selectedConfigId}
-                                    focusedLines={parseLineConfig(
-                                        ((selectedPage.content as any).configList || []).find((c: any) => c.id === (selectedPage.content as any).selectedConfigId)?.lines || ''
-                                    )}
-                                    showHtml={(selectedPage.content as any).showHtml}
-                                    onDimensionsChange={(w, h) => {
-                                        updatePageContent(selectedPage.id, {
-                                            ...selectedPage.content,
-                                            exportWidth: w.toString(),
-                                            exportHeight: h.toString()
-                                        });
-                                    }}
-                                    previewRef={previewRef}
-                                    exportWidth={exportWidth}
-                                    exportHeight={exportHeight}
+                <ResizableSplitPane
+                    left={<Outlet context={{ previewRef }} />}
+                    right={showPreview ? (
+                        <div style={{ flex: 1, overflow: 'auto', padding: '20px', backgroundColor: '#f9f9f9', display: 'flex' }}>
+                            <div style={{ margin: '0 auto', width: 'fit-content', maxWidth: '100%' }}>
+                                <PreviewControls
+                                    exportWidth={exportWidth || ''}
+                                    setExportWidth={(w) => handleDimsChange(w, undefined)}
+                                    exportHeight={exportHeight || ''}
+                                    setExportHeight={(h) => handleDimsChange(undefined, h)}
                                 />
-                            )}
-                            {selectedPage.kind === 'chat_thread' && (
-                                <IMPreview
-                                    jsonInput={selectedPage.content as string || ''}
-                                    onResolveAvatarUrl={handleResolveAvatarUrl}
-                                />
-                            )}
+                                {selectedPage.kind === 'code' && (
+                                    <PreviewPanel
+                                        code={(selectedPage.content as any).code || ''}
+                                        language={(selectedPage.content as any).language}
+                                        isFocusMode={!!(selectedPage.content as any).selectedConfigId}
+                                        focusedLines={parseLineConfig(
+                                            ((selectedPage.content as any).configList || []).find((c: any) => c.id === (selectedPage.content as any).selectedConfigId)?.lines || ''
+                                        )}
+                                        showHtml={(selectedPage.content as any).showHtml}
+                                        onDimensionsChange={(w, h) => {
+                                            handleDimsChange(w.toString(), h.toString());
+                                        }}
+                                        previewRef={previewRef}
+                                        exportWidth={exportWidth}
+                                        exportHeight={exportHeight}
+                                    />
+                                )}
+                                {selectedPage.kind === 'chat_thread' && (
+                                    <IMPreview
+                                        key={selectedPage.id}
+                                        jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any).json || ''}
+                                        onResolveAvatarUrl={handleResolveAvatarUrl}
+                                        exportWidth={exportWidth}
+                                        exportHeight={exportHeight}
+                                        onDimensionsChange={handleIMDimensionsChange}
+                                    />
+                                )}
+                            </div>
                         </div>
-                    )}
-                </div>
+                    ) : undefined}
+                />
             </div>
             <CreatePageModal
                 isOpen={isCreateModalOpen}

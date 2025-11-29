@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiTrash, FiEdit2, FiPlus, FiCode, FiList, FiCheck, FiX } from 'react-icons/fi';
+import { InlineEdit } from '../common/InlineEdit';
 import { type Message } from './types';
 
 interface MessageInputProps {
@@ -66,7 +67,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onR
 
     const updateMessages = (newMessages: Message[]) => {
         setMessages(newMessages);
-        onChange(JSON.stringify(newMessages, null, 2));
+        const json = JSON.stringify(newMessages, null, 2);
+        onChange(json);
     };
 
     const handleDelete = (index: number) => {
@@ -117,6 +119,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onR
             return onResolveAvatarUrl(avatar);
         }
         return avatar;
+    };
+
+    const handleContentUpdate = (index: number, newContent: string) => {
+        const newMessages = messages.map((msg, i) =>
+            i === index ? { ...msg, content: newContent } : msg
+        );
+        updateMessages(newMessages);
     };
 
     return (
@@ -267,9 +276,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({ value, onChange, onR
                                             {msg.is_bot && <span style={{ fontSize: '0.7em', backgroundColor: '#eee', padding: '1px 4px', borderRadius: '4px' }}>BOT</span>}
                                             <span style={{ fontSize: '0.8em', color: '#888' }}>{msg.sendTime}</span>
                                         </div>
-                                        <div style={{ fontSize: '0.9em', color: '#555', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {msg.content}
-                                        </div>
+                                        <InlineEdit
+                                            value={msg.content}
+                                            onSave={(val) => handleContentUpdate(index, val)}
+                                            multiline
+                                            style={{ fontSize: '0.9em', color: '#555' }}
+                                        />
                                     </div>
                                     <div style={{ display: 'flex', gap: '5px' }}>
                                         <button onClick={() => handleEdit(index)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#666' }}><FiEdit2 /></button>

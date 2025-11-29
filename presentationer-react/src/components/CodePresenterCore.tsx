@@ -5,44 +5,34 @@ import { ConfigPanel, type ConfigItem } from './code-presenter/ConfigPanel';
 export interface CodePresenterCoreProps {
     code: string;
     setCode: (code: string) => void;
+    language?: string;
+    setLanguage?: (lang: string) => void;
     configList: ConfigItem[];
     setConfigList: (list: ConfigItem[]) => void;
     selectedConfigId: string | null;
     setSelectedConfigId: (id: string | null) => void;
     showHtml: boolean;
     setShowHtml: (show: boolean) => void;
-    exportWidth: string;
-    setExportWidth: (w: string) => void;
-    exportHeight: string;
-    setExportHeight: (h: string) => void;
-    onExportPng?: () => void;
-    onCopyPng?: () => void;
 }
 
 export const CodePresenterCore: React.FC<CodePresenterCoreProps> = ({
     code, setCode,
+    language, setLanguage,
     configList, setConfigList,
     selectedConfigId, setSelectedConfigId,
-    showHtml, setShowHtml,
-    exportWidth, setExportWidth,
-    exportHeight, setExportHeight,
-    onExportPng, onCopyPng
+    showHtml, setShowHtml
 }) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <CodeEditor code={code} onChange={setCode} />
+            <CodeEditor code={code} onChange={setCode} language={language} />
 
             <ConfigPanel
-                exportWidth={exportWidth}
-                setExportWidth={setExportWidth}
-                exportHeight={exportHeight}
-                setExportHeight={setExportHeight}
                 configList={configList}
                 setConfigList={setConfigList}
                 selectedConfigId={selectedConfigId}
                 setSelectedConfigId={setSelectedConfigId}
-                onExportPng={onExportPng}
-                onCopyPng={onCopyPng}
+                language={language}
+                setLanguage={setLanguage}
                 showHtml={showHtml}
                 setShowHtml={setShowHtml}
             />

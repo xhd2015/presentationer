@@ -76,10 +76,15 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
                 clearTimeout(debouncedSaveRef.current[pageId]);
             }
             debouncedSaveRef.current[pageId] = setTimeout(() => {
-                updatePageApi(sessionName, newPage).catch(err => {
-                    console.error("Auto-save failed", err);
-                });
-            }, 2000);
+                updatePageApi(sessionName, newPage)
+                    .then(() => {
+                        console.log("Auto-saved page", pageId);
+                    })
+                    .catch(err => {
+                        console.error("Auto-save failed", err);
+                        toast.error("Auto-save failed");
+                    });
+            }, 1000);
 
             return newPages;
         });
