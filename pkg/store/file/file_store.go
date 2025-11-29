@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/xhd2015/presentationer/pkg/model"
 )
@@ -35,8 +39,8 @@ func (s *FileSessionStore) getSessionDir(name string) string {
 	return filepath.Join(s.RootDir, name)
 }
 
-func (s *FileSessionStore) getPagesPath(name string) string {
-	return filepath.Join(s.getSessionDir(name), "pages.json")
+func (s *FileSessionStore) getPagesDir(name string) string {
+	return filepath.Join(s.getSessionDir(name), "pages")
 }
 
 func (s *FileSessionStore) getAvatarsDir(name string) string {
@@ -64,21 +68,21 @@ func (s *FileSessionStore) List(ctx context.Context) ([]model.Session, error) {
 		}
 
 		name := entry.Name()
-		pagesPath := s.getPagesPath(name)
-		info, err := os.Stat(pagesPath)
-		if err != nil {
-			// No pages.json? maybe just an empty session dir or partial
-			// If directory exists, we consider it a session, but maybe check if it has content
-			// Let's use directory mod time if pages.json missing, or skip?
-			// Let's skip if pages.json is missing to be safe, or treat as valid empty session?
-			// Current logic implies session has content.
-			// Let's assume valid session has pages.json
-			continue
+		pagesDir := s.getPagesDir(name)
+
+		var modTime time.Time
+
+		if info, err := os.Stat(pagesDir); err == nil && info.IsDir() {
+			modTime = info.ModTime()
+		} else {
+			// Fallback to session dir
+			info, _ := os.Stat(s.getSessionDir(name))
+			modTime = info.ModTime()
 		}
 
 		sessions = append(sessions, model.Session{
 			Name:         name,
-			LastModified: info.ModTime(),
+			LastModified: modTime,
 		})
 	}
 
@@ -94,34 +98,20 @@ func (s *FileSessionStore) Get(ctx context.Context, name string) (*model.Session
 		return nil, err
 	}
 
-	pagesPath := s.getPagesPath(name)
-	content, err := os.ReadFile(pagesPath)
+	pages, err := s.readPagesFromDir(name)
 	if err != nil {
 		return nil, err
 	}
 
-	info, _ := os.Stat(pagesPath)
-
-	var sc SessionContent
-	if err := json.Unmarshal(content, &sc); err != nil || len(sc.Pages) == 0 {
-		var js map[string]interface{}
-		if json.Unmarshal(content, &js) == nil {
-			if _, ok := js["pages"]; !ok {
-				sc.Pages = []model.Page{{
-					ID:      "legacy",
-					Title:   "Code",
-					Kind:    model.PageKindCode,
-					Content: content,
-				}}
-			}
-		} else {
-			sc.Pages = []model.Page{}
-		}
+	pagesDir := s.getPagesDir(name)
+	info, err := os.Stat(pagesDir)
+	if err != nil {
+		info, _ = os.Stat(s.getSessionDir(name))
 	}
 
 	return &model.Session{
 		Name:         name,
-		Pages:        sc.Pages,
+		Pages:        pages,
 		LastModified: info.ModTime(),
 	}, nil
 }
@@ -140,25 +130,44 @@ func (s *FileSessionStore) Create(ctx context.Context, session *model.Session) e
 		return err
 	}
 
-	// Create avatars dir
 	if err := os.MkdirAll(s.getAvatarsDir(session.Name), 0755); err != nil {
 		return err
 	}
 
-	return s.writeSession(session.Name, session)
+	if err := os.MkdirAll(s.getPagesDir(session.Name), 0755); err != nil {
+		return err
+	}
+
+	return s.writePagesToDir(session.Name, session.Pages)
 }
 
 func (s *FileSessionStore) Update(ctx context.Context, session *model.Session) error {
 	if err := s.ensureDirs(); err != nil {
 		return err
 	}
-	// Ensure directory exists (handling case where it might not for some reason)
 	sessionDir := s.getSessionDir(session.Name)
 	if err := os.MkdirAll(sessionDir, 0755); err != nil {
 		return err
 	}
+	if err := os.MkdirAll(s.getPagesDir(session.Name), 0755); err != nil {
+		return err
+	}
 
-	return s.writeSession(session.Name, session)
+	return s.writePagesToDir(session.Name, session.Pages)
+}
+
+func (s *FileSessionStore) Rename(ctx context.Context, oldName, newName string) error {
+	if err := s.ensureDirs(); err != nil {
+		return err
+	}
+	oldPath := s.getSessionDir(oldName)
+	newPath := s.getSessionDir(newName)
+
+	if _, err := os.Stat(newPath); err == nil {
+		return fmt.Errorf("session %s already exists", newName)
+	}
+
+	return os.Rename(oldPath, newPath)
 }
 
 func (s *FileSessionStore) Delete(ctx context.Context, name string) error {
@@ -170,10 +179,83 @@ func (s *FileSessionStore) Delete(ctx context.Context, name string) error {
 	return os.RemoveAll(sessionDir)
 }
 
-func (s *FileSessionStore) writeSession(name string, session *model.Session) error {
-	data, err := json.Marshal(SessionContent{Pages: session.Pages})
-	if err != nil {
-		return err
+// --- Helper Logic ---
+
+func (s *FileSessionStore) readPagesFromDir(name string) ([]model.Page, error) {
+	pagesDir := s.getPagesDir(name)
+	if _, err := os.Stat(pagesDir); os.IsNotExist(err) {
+		return []model.Page{}, nil
 	}
-	return os.WriteFile(s.getPagesPath(name), data, 0644)
+
+	entries, err := os.ReadDir(pagesDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+			files = append(files, e.Name())
+		}
+	}
+
+	sort.Slice(files, func(i, j int) bool {
+		idxI := getIndexFromFileName(files[i])
+		idxJ := getIndexFromFileName(files[j])
+		return idxI < idxJ
+	})
+
+	var pages []model.Page
+	for _, f := range files {
+		data, err := os.ReadFile(filepath.Join(pagesDir, f))
+		if err != nil {
+			continue
+		}
+		var p model.Page
+		if err := json.Unmarshal(data, &p); err == nil {
+			pages = append(pages, p)
+		}
+	}
+	return pages, nil
+}
+
+func (s *FileSessionStore) writePagesToDir(sessionName string, pages []model.Page) error {
+	pagesDir := s.getPagesDir(sessionName)
+
+	os.RemoveAll(pagesDir)
+	os.MkdirAll(pagesDir, 0755)
+
+	for i, p := range pages {
+		filename := fmt.Sprintf("%d.%s.json", i+1, sanitizeTitle(p.Title))
+		path := filepath.Join(pagesDir, filename)
+
+		data, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, data, 0644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getIndexFromFileName(name string) int {
+	parts := strings.SplitN(name, ".", 2)
+	if len(parts) > 0 {
+		if idx, err := strconv.Atoi(parts[0]); err == nil {
+			return idx
+		}
+	}
+	return 9999
+}
+
+func sanitizeTitle(title string) string {
+	reg := regexp.MustCompile(`[^a-zA-Z0-9\-_ ]+`)
+	s := reg.ReplaceAllString(title, "_")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "Untitled"
+	}
+	return s
 }

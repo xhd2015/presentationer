@@ -3,6 +3,7 @@ import hljs from 'highlight.js/lib/core';
 import go from 'highlight.js/lib/languages/go';
 import 'highlight.js/styles/vs2015.css';
 import { processHtmlLines, walkAndHighlight, type FocusLineConfig } from './focus';
+import { PreviewContainer } from '../common/PreviewContainer';
 
 hljs.registerLanguage('go', go);
 
@@ -12,7 +13,9 @@ interface PreviewPanelProps {
     focusedLines: FocusLineConfig[];
     showHtml: boolean;
     onDimensionsChange: (width: number, height: number) => void;
-    previewRef: React.RefObject<HTMLDivElement>;
+    previewRef: React.RefObject<HTMLDivElement | null>;
+    exportWidth?: string;
+    exportHeight?: string;
 }
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
@@ -22,25 +25,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     showHtml,
     onDimensionsChange,
     previewRef,
+    exportWidth,
+    exportHeight,
 }) => {
     const codeContentRef = useRef<HTMLElement>(null);
-
-    // Handle resize observer to update dimensions
-    useEffect(() => {
-        if (!previewRef.current) return;
-
-        const observer = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                onDimensionsChange(
-                    Math.round(entry.contentRect.width),
-                    Math.round(entry.contentRect.height)
-                );
-            }
-        });
-
-        observer.observe(previewRef.current);
-        return () => observer.disconnect();
-    }, [previewRef, onDimensionsChange]);
 
     // Apply highlighting and focus effects
     useEffect(() => {
@@ -58,8 +46,6 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
             el.innerHTML = processHtmlLines(html, focusedLines, isFocusMode);
 
             // 3. Post-process for text highlighting using DOM
-
-            // 3. Post-process for text highlighting using DOM
             if (isFocusMode) {
                 focusedLines.forEach((config: FocusLineConfig) => {
                     if (config.textMatch) {
@@ -75,21 +61,17 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
 
     return (
         <div>
-            <strong>Preview:</strong>
-            <div
-                ref={previewRef}
+            <PreviewContainer
+                title="Preview:"
+                onDimensionsChange={onDimensionsChange}
+                containerRef={previewRef}
+                exportWidth={exportWidth}
+                exportHeight={exportHeight}
                 style={{
-                    marginTop: '10px',
-                    borderRadius: '8px',
-                    overflow: 'auto',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    resize: 'both',
-                    maxWidth: '100%',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#1e1e1e', // Match highlight.js theme bg
+                    backgroundColor: '#1e1e1e',
                 }}
             >
-                <pre style={{ margin: 0, /* padding: '10px', */ fontSize: '14px', lineHeight: '1.5', minHeight: '100%' }}>
+                <pre style={{ margin: 0, fontSize: '14px', lineHeight: '1.5', minHeight: '100%' }}>
                     <code ref={codeContentRef} className="language-go" style={{
                         fontFamily: 'monospace', outline: 'none',
                         padding: '4px',
@@ -98,7 +80,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
                         {code}
                     </code>
                 </pre>
-            </div>
+            </PreviewContainer>
 
             {showHtml && (
                 <div style={{ marginTop: '20px' }}>

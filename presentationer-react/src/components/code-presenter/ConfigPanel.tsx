@@ -19,8 +19,8 @@ interface ConfigPanelProps {
     selectedConfigId: string | null;
     setSelectedConfigId: (id: string | null) => void;
 
-    onExportPng: () => void;
-    onCopyPng: () => void;
+    onExportPng?: () => void;
+    onCopyPng?: () => void;
     showHtml: boolean;
     setShowHtml: (show: boolean) => void;
 }
@@ -50,7 +50,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         };
         setConfigList([...configList, newConfig]);
         setSelectedConfigId(newConfig.id);
-        // Automatically start editing name for new config if desired, or keep general edit mode
     };
 
     const handleNameEditToggle = (id: string, e: React.MouseEvent) => {
@@ -187,7 +186,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
 
                                     {config.isEditing && (
                                         <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
-                                            {/* Name input removed from here as requested */}
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '12px', marginBottom: '2px' }}>Lines (e.g. 1-3, 5):</label>
                                                 <input
@@ -208,12 +206,16 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={onExportPng} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-                    Export to PNG
-                </button>
-                <button onClick={onCopyPng} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-                    Copy PNG
-                </button>
+                {onExportPng && (
+                    <button onClick={onExportPng} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+                        Export to PNG
+                    </button>
+                )}
+                {onCopyPng && (
+                    <button onClick={onCopyPng} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+                        Copy PNG
+                    </button>
+                )}
                 <button onClick={() => setShowHtml(!showHtml)} style={{ padding: '8px 16px', cursor: 'pointer' }}>
                     {showHtml ? 'Hide HTML' : 'Show HTML Output'}
                 </button>

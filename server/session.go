@@ -84,6 +84,29 @@ func handleUpdateSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func handleRenameSession(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Old string `json:"old"`
+		New string `json:"new"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Old == "" || req.New == "" {
+		http.Error(w, "old and new names required", http.StatusBadRequest)
+		return
+	}
+	req.New = filepath.Base(req.New)
+
+	if err := sessionStore.Rename(r.Context(), req.Old, req.New); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func handleDeleteSession(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -313,6 +336,7 @@ func RegisterSessionRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/sessions/list", handleListSessions)
 	mux.HandleFunc("/api/sessions/create", handleCreateSession) // POST
 	mux.HandleFunc("/api/sessions/update", handleUpdateSession) // POST/PUT
+	mux.HandleFunc("/api/sessions/rename", handleRenameSession) // POST
 	mux.HandleFunc("/api/sessions/delete", handleDeleteSession) // DELETE or POST
 	mux.HandleFunc("/api/sessions/get", handleGetSession)
 

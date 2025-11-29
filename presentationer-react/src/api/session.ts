@@ -43,6 +43,18 @@ export async function updateSession(name: string, pages: Page[]): Promise<void> 
     }
 }
 
+export async function renameSession(oldName: string, newName: string): Promise<void> {
+    const res = await fetch('/api/sessions/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old: oldName, new: newName }),
+    });
+    if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg);
+    }
+}
+
 export async function deleteSession(name: string): Promise<void> {
     const res = await fetch(`/api/sessions/delete?name=${encodeURIComponent(name)}`, {
         method: 'POST',
@@ -54,6 +66,37 @@ export async function getSession(name: string): Promise<Session> {
     const res = await fetch(`/api/sessions/get?name=${encodeURIComponent(name)}`);
     if (!res.ok) throw new Error('Failed to load session');
     return res.json();
+}
+
+export async function createPage(sessionName: string, page: Page): Promise<void> {
+    const res = await fetch(`/api/sessions/page/create?session=${encodeURIComponent(sessionName)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(page),
+    });
+    if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg);
+    }
+}
+
+export async function updatePage(sessionName: string, page: Page): Promise<void> {
+    const res = await fetch(`/api/sessions/page/update?session=${encodeURIComponent(sessionName)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(page),
+    });
+    if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg);
+    }
+}
+
+export async function deletePage(sessionName: string, pageId: string): Promise<void> {
+    const res = await fetch(`/api/sessions/page/delete?session=${encodeURIComponent(sessionName)}&id=${encodeURIComponent(pageId)}`, {
+        method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to delete page');
 }
 
 // Avatar APIs

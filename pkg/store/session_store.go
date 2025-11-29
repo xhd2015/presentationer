@@ -11,6 +11,7 @@ type SessionStore interface {
 	Get(ctx context.Context, name string) (*model.Session, error)
 	Create(ctx context.Context, session *model.Session) error
 	Update(ctx context.Context, session *model.Session) error
+	Rename(ctx context.Context, oldName string, newName string) error
 	Delete(ctx context.Context, name string) error
 
 	// Page operations

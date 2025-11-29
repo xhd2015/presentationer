@@ -18,13 +18,14 @@ export interface CodePresenterState {
 
 export interface CodePresenterProps {
   initialState?: Partial<CodePresenterState>;
+  onChange?: (state: CodePresenterState) => void;
 }
 
 export interface CodePresenterRef {
   getState: () => CodePresenterState;
 }
 
-const CodePresenter = forwardRef<CodePresenterRef, CodePresenterProps>(({ initialState }, ref) => {
+const CodePresenter = forwardRef<CodePresenterRef, CodePresenterProps>(({ initialState, onChange }, ref) => {
   const [code, setCode] = useState<string>(initialState?.code || `package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, World!")\n}`);
   const [configList, setConfigList] = useState<ConfigItem[]>(initialState?.configList || []);
   const [selectedConfigId, setSelectedConfigId] = useState<string | null>(initialState?.selectedConfigId || null);
@@ -32,15 +33,22 @@ const CodePresenter = forwardRef<CodePresenterRef, CodePresenterProps>(({ initia
   const [exportWidth, setExportWidth] = useState<string>(initialState?.exportWidth || '');
   const [exportHeight, setExportHeight] = useState<string>(initialState?.exportHeight || '');
 
+  const state = {
+    code,
+    configList,
+    selectedConfigId,
+    exportWidth,
+    exportHeight,
+    showHtml
+  };
+
+  // Notify parent on state change
+  useEffect(() => {
+    onChange?.(state);
+  }, [code, configList, selectedConfigId, exportWidth, exportHeight, showHtml]);
+
   useImperativeHandle(ref, () => ({
-    getState: () => ({
-      code,
-      configList,
-      selectedConfigId,
-      exportWidth,
-      exportHeight,
-      showHtml
-    })
+    getState: () => state
   }));
 
   const previewRef = useRef<HTMLDivElement>(null!);
