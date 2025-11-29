@@ -10,6 +10,7 @@ type PageKind string
 const (
 	PageKindCode       PageKind = "code"
 	PageKindChatThread PageKind = "chat_thread"
+	PageKindChart      PageKind = "chart"
 )
 
 type Page struct {

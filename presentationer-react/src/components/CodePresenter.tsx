@@ -1,6 +1,4 @@
 import { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { toPng } from 'html-to-image';
-import toast from 'react-hot-toast';
 import { CodeEditor } from './code-presenter/CodeEditor';
 import { ConfigPanel, type ConfigItem } from './code-presenter/ConfigPanel';
 import { PreviewPanel } from './code-presenter/PreviewPanel';
@@ -72,56 +70,6 @@ const CodePresenter = forwardRef<CodePresenterRef, CodePresenterProps>(({ initia
     setExportHeight(height.toString());
   }, []);
 
-  const handleExportPng = useCallback(async () => {
-    if (previewRef.current === null) return;
-    try {
-      const width = exportWidth ? parseInt(exportWidth, 10) : undefined;
-      const height = exportHeight ? parseInt(exportHeight, 10) : undefined;
-      const dataUrl = await toPng(previewRef.current, {
-        cacheBust: true,
-        backgroundColor: '#1e1e1e',
-        width,
-        height,
-        canvasWidth: width,
-        canvasHeight: height
-      });
-      const link = document.createElement('a');
-      link.download = 'code-snippet.png';
-      link.href = dataUrl;
-      link.click();
-      toast.success('Exported successfully!');
-    } catch (err) {
-      console.error('Failed to export PNG', err);
-      toast.error('Failed to export PNG');
-    }
-  }, [previewRef, exportWidth, exportHeight]);
-
-  const handleCopyPng = useCallback(async () => {
-    if (previewRef.current === null) return;
-    try {
-      const width = exportWidth ? parseInt(exportWidth, 10) : undefined;
-      const height = exportHeight ? parseInt(exportHeight, 10) : undefined;
-      const dataUrl = await toPng(previewRef.current, {
-        cacheBust: true,
-        backgroundColor: '#1e1e1e',
-        width,
-        height,
-        canvasWidth: width,
-        canvasHeight: height
-      });
-      const blob = await (await fetch(dataUrl)).blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [blob.type]: blob,
-        }),
-      ]);
-      toast.success('Image copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to copy PNG', err);
-      toast.error('Failed to copy image.');
-    }
-  }, [previewRef, exportWidth, exportHeight]);
-
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
       <h2>Code Presenter</h2>
@@ -131,16 +79,10 @@ const CodePresenter = forwardRef<CodePresenterRef, CodePresenterProps>(({ initia
           <CodeEditor code={code} onChange={setCode} />
 
           <ConfigPanel
-            exportWidth={exportWidth}
-            setExportWidth={setExportWidth}
-            exportHeight={exportHeight}
-            setExportHeight={setExportHeight}
             configList={configList}
             setConfigList={setConfigList}
             selectedConfigId={selectedConfigId}
             setSelectedConfigId={setSelectedConfigId}
-            onExportPng={handleExportPng}
-            onCopyPng={handleCopyPng}
             showHtml={showHtml}
             setShowHtml={setShowHtml}
           />

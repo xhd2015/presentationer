@@ -14,14 +14,11 @@ interface ConfigPanelProps {
     selectedConfigId: string | null;
     setSelectedConfigId: (id: string | null) => void;
 
-    language?: string;
-    setLanguage?: (lang: string) => void;
-
     showHtml: boolean;
     setShowHtml: (show: boolean) => void;
 }
 
-const SUPPORTED_LANGUAGES = [
+export const SUPPORTED_LANGUAGES = [
     'go', 'typescript', 'javascript', 'python', 'java', 'c', 'cpp', 'csharp', 'rust',
     'bash', 'json', 'yaml', 'sql', 'html', 'css', 'markdown'
 ];
@@ -31,8 +28,6 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
     setConfigList,
     selectedConfigId,
     setSelectedConfigId,
-    language,
-    setLanguage,
     showHtml,
     setShowHtml,
 }) => {
@@ -81,25 +76,30 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
         }
     };
 
+    const handleListKeyDown = (e: React.KeyboardEvent) => {
+        if (configList.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const idx = configList.findIndex(c => c.id === selectedConfigId);
+            if (idx < configList.length - 1) {
+                setSelectedConfigId(configList[idx + 1].id);
+            } else if (idx === -1 && configList.length > 0) {
+                setSelectedConfigId(configList[0].id);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const idx = configList.findIndex(c => c.id === selectedConfigId);
+            if (idx > 0) {
+                setSelectedConfigId(configList[idx - 1].id);
+            } else if (idx === -1 && configList.length > 0) {
+                setSelectedConfigId(configList[configList.length - 1].id);
+            }
+        }
+    };
+
     return (
         <>
-            {setLanguage && (
-                <div style={{ marginBottom: '10px' }}>
-                    <label>
-                        <strong>Language: </strong>
-                        <select
-                            value={language || 'go'}
-                            onChange={(e) => setLanguage(e.target.value)}
-                            style={{ marginLeft: '5px', padding: '4px', borderRadius: '4px' }}
-                        >
-                            {SUPPORTED_LANGUAGES.map(lang => (
-                                <option key={lang} value={lang}>{lang}</option>
-                            ))}
-                        </select>
-                    </label>
-                </div>
-            )}
-
             <div style={{ border: '1px solid #eee', padding: '10px', borderRadius: '4px' }}>
                 <strong>Config:</strong>
 
@@ -114,7 +114,11 @@ export const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     {configList.length === 0 ? (
                         <div style={{ color: '#888', fontSize: '14px' }}>No configurations added.</div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div
+                            style={{ display: 'flex', flexDirection: 'column', gap: '8px', outline: 'none' }}
+                            tabIndex={0}
+                            onKeyDown={handleListKeyDown}
+                        >
                             {configList.map(config => (
                                 <div
                                     key={config.id}

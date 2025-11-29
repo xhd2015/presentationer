@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { getSession, updateSession, createPage as createPageApi, deletePage as deletePageApi, updatePage as updatePageApi, type Page } from '../api/session';
+import { getSession, updateSession, createPage as createPageApi, deletePage as deletePageApi, updatePage as updatePageApi, type Page, PageKind } from '../api/session';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,9 +10,10 @@ interface SessionDetailContextType {
     refreshPages: () => Promise<void>;
     saveSession: () => Promise<void>;
     updatePageContent: (pageId: string, content: any) => void;
-    createPage: (title: string, kind: 'code' | 'chat_thread') => Promise<void>;
+    createPage: (title: string, kind: PageKind) => Promise<void>;
     deletePage: (pageId: string) => Promise<void>;
     renamePage: (pageId: string, newTitle: string) => Promise<void>;
+    duplicatePage: (pageId: string) => Promise<void>;
 }
 
 const SessionDetailContext = createContext<SessionDetailContextType | null>(null);
@@ -45,7 +46,7 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
                     {
                         id: Date.now().toString(),
                         title: 'Code',
-                        kind: 'code',
+                        kind: PageKind.Code,
                         content: {}
                     }
                 ];
@@ -68,7 +69,8 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
             const idx = prev.findIndex(p => p.id === pageId);
             if (idx === -1) return prev;
             const newPages = [...prev];
-            const newPage = { ...newPages[idx], content };
+            const resolvedContent = typeof content === 'function' ? content(newPages[idx].content) : content;
+            const newPage = { ...newPages[idx], content: resolvedContent };
             newPages[idx] = newPage;
 
             // Trigger auto-save
@@ -107,7 +109,7 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
         }
     }, [sessionName, refreshPages]);
 
-    const createPage = async (title: string, kind: 'code' | 'chat_thread') => {
+    const createPage = async (title: string, kind: PageKind) => {
         if (pages.some(p => p.title === title)) {
             toast.error("Page name must be unique");
             throw new Error("Page name must be unique");
@@ -117,7 +119,7 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
             id: Date.now().toString(),
             title: title,
             kind: kind,
-            content: kind === 'code' ? {} : undefined
+            content: (kind === PageKind.Code || kind === PageKind.Chart) ? {} : undefined
         };
 
         const updatedPages = [...pages, newPage];
@@ -169,6 +171,43 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
         }
     };
 
+    const duplicatePage = async (pageId: string) => {
+        const page = pages.find(p => p.id === pageId);
+        if (!page) return;
+
+        let newTitle = `${page.title} Copy`;
+        let counter = 1;
+        // Use pagesRef.current to get latest pages if closure is stale, but setPages updates state.
+        // We should use current pages.
+        const currentPages = pagesRef.current;
+        while (currentPages.some(p => p.title === newTitle)) {
+            counter++;
+            newTitle = `${page.title} Copy ${counter}`;
+        }
+
+        const newContent = page.content ? JSON.parse(JSON.stringify(page.content)) : undefined;
+
+        const newPage: Page = {
+            id: Date.now().toString(),
+            title: newTitle,
+            kind: page.kind,
+            content: newContent
+        };
+
+        const updatedPages = [...currentPages, newPage];
+        setPages(updatedPages);
+
+        navigate(`/sessions/${sessionName}/pages/${encodeURIComponent(newPage.title)}`);
+
+        try {
+            await createPageApi(sessionName, newPage);
+            toast.success("Page duplicated");
+        } catch (e) {
+            toast.error("Failed to duplicate page");
+            refreshPages();
+        }
+    };
+
     return (
         <SessionDetailContext.Provider value={{
             sessionName,
@@ -179,7 +218,8 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
             updatePageContent,
             createPage,
             deletePage,
-            renamePage
+            renamePage,
+            duplicatePage
         }}>
             {children}
         </SessionDetailContext.Provider>

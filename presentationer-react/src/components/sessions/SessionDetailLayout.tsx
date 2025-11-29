@@ -5,13 +5,14 @@ import { SessionDetailProvider, useSessionDetailContext } from '../../context/Se
 import { CreatePageModal } from './CreatePageModal';
 import { PreviewPanel } from '../code-presenter/PreviewPanel';
 import { IMPreview } from '../im/IMPreview';
+import { ChartPreview } from '../chart/ChartPreview';
 import { parseLineConfig } from '../code-presenter/focus';
-import { getAvatarUrl } from '../../api/session';
+import { getAvatarUrl, PageKind } from '../../api/session';
 import { ResizableSplitPane } from '../common/ResizableSplitPane';
 import { PreviewControls } from '../common/PreviewControls';
 
 const SessionDetailContent: React.FC = () => {
-    const { pages, createPage, deletePage, sessionName, saveSession, renamePage, updatePageContent } = useSessionDetailContext();
+    const { pages, createPage, deletePage, sessionName, saveSession, renamePage, updatePageContent, duplicatePage } = useSessionDetailContext();
     const { pageTitle } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -28,11 +29,16 @@ const SessionDetailContent: React.FC = () => {
     let exportWidth: string | undefined;
     let exportHeight: string | undefined;
     if (selectedPage) {
-        if (selectedPage.kind === 'code') {
+        if (selectedPage.kind === PageKind.Code) {
             exportWidth = (selectedPage.content as any).exportWidth;
             exportHeight = (selectedPage.content as any).exportHeight;
-        } else if (selectedPage.kind === 'chat_thread') {
-            if (typeof selectedPage.content !== 'string') {
+        } else if (selectedPage.kind === PageKind.ChatThread) {
+            if (selectedPage.content && typeof selectedPage.content !== 'string') {
+                exportWidth = (selectedPage.content as any).exportWidth;
+                exportHeight = (selectedPage.content as any).exportHeight;
+            }
+        } else if (selectedPage.kind === PageKind.Chart) {
+            if (selectedPage.content) {
                 exportWidth = (selectedPage.content as any).exportWidth;
                 exportHeight = (selectedPage.content as any).exportHeight;
             }
@@ -43,7 +49,9 @@ const SessionDetailContent: React.FC = () => {
         if (!selectedPage) return;
         let newContent = selectedPage.content;
 
-        if (selectedPage.kind === 'chat_thread' && typeof newContent === 'string') {
+        if (selectedPage.kind === PageKind.ChatThread && typeof newContent === 'string') {
+            newContent = { json: newContent };
+        } else if (selectedPage.kind === PageKind.Chart && typeof newContent === 'string') {
             newContent = { json: newContent };
         }
 
@@ -64,6 +72,10 @@ const SessionDetailContent: React.FC = () => {
     }, [selectedPage, updatePageContent]);
 
     const handleIMDimensionsChange = useCallback((w: number, h: number) => {
+        handleDimsChange(w.toString(), h.toString());
+    }, [handleDimsChange]);
+
+    const handleChartDimensionsChange = useCallback((w: number, h: number) => {
         handleDimsChange(w.toString(), h.toString());
     }, [handleDimsChange]);
 
@@ -111,6 +123,7 @@ const SessionDetailContent: React.FC = () => {
                 onCreateClick={() => setCreateModalOpen(true)}
                 onSettingsClick={handleSettingsClick}
                 onRenamePage={handleRenamePage}
+                onDuplicatePage={duplicatePage}
             />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ padding: '10px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', height: '40px' }}>
@@ -153,15 +166,15 @@ const SessionDetailContent: React.FC = () => {
                                     exportHeight={exportHeight || ''}
                                     setExportHeight={(h) => handleDimsChange(undefined, h)}
                                 />
-                                {selectedPage.kind === 'code' && (
+                                {selectedPage.kind === PageKind.Code && (
                                     <PreviewPanel
-                                        code={(selectedPage.content as any).code || ''}
-                                        language={(selectedPage.content as any).language}
-                                        isFocusMode={!!(selectedPage.content as any).selectedConfigId}
+                                        code={(selectedPage.content as any)?.code || ''}
+                                        language={(selectedPage.content as any)?.language}
+                                        isFocusMode={!!(selectedPage.content as any)?.selectedConfigId}
                                         focusedLines={parseLineConfig(
-                                            ((selectedPage.content as any).configList || []).find((c: any) => c.id === (selectedPage.content as any).selectedConfigId)?.lines || ''
+                                            ((selectedPage.content as any)?.configList || []).find((c: any) => c.id === (selectedPage.content as any)?.selectedConfigId)?.lines || ''
                                         )}
-                                        showHtml={(selectedPage.content as any).showHtml}
+                                        showHtml={(selectedPage.content as any)?.showHtml}
                                         onDimensionsChange={(w, h) => {
                                             handleDimsChange(w.toString(), h.toString());
                                         }}
@@ -170,14 +183,24 @@ const SessionDetailContent: React.FC = () => {
                                         exportHeight={exportHeight}
                                     />
                                 )}
-                                {selectedPage.kind === 'chat_thread' && (
+                                {selectedPage.kind === PageKind.ChatThread && (
                                     <IMPreview
                                         key={selectedPage.id}
-                                        jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any).json || ''}
+                                        jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
                                         onResolveAvatarUrl={handleResolveAvatarUrl}
                                         exportWidth={exportWidth}
                                         exportHeight={exportHeight}
                                         onDimensionsChange={handleIMDimensionsChange}
+                                    />
+                                )}
+                                {selectedPage.kind === PageKind.Chart && (
+                                    <ChartPreview
+                                        key={`${selectedPage.id}-${(selectedPage.content as any)?.refreshKey || 0}`}
+                                        jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
+                                        chartType={(selectedPage.content as any)?.chartType || 'line'}
+                                        exportWidth={exportWidth}
+                                        exportHeight={exportHeight}
+                                        onDimensionsChange={handleChartDimensionsChange}
                                     />
                                 )}
                             </div>
@@ -188,7 +211,7 @@ const SessionDetailContent: React.FC = () => {
             <CreatePageModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setCreateModalOpen(false)}
-                onConfirm={(title: string, kind: 'code' | 'chat_thread') => {
+                onConfirm={(title: string, kind: PageKind) => {
                     createPage(title, kind).then(() => setCreateModalOpen(false));
                 }}
             />

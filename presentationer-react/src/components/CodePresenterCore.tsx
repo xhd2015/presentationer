@@ -1,6 +1,6 @@
 import React from 'react';
 import { CodeEditor } from './code-presenter/CodeEditor';
-import { ConfigPanel, type ConfigItem } from './code-presenter/ConfigPanel';
+import { ConfigPanel, type ConfigItem, SUPPORTED_LANGUAGES } from './code-presenter/ConfigPanel';
 
 export interface CodePresenterCoreProps {
     code: string;
@@ -24,6 +24,22 @@ export const CodePresenterCore: React.FC<CodePresenterCoreProps> = ({
 }) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {setLanguage && (
+                <div style={{ marginBottom: '0px' }}>
+                    <label>
+                        <strong>Language: </strong>
+                        <select
+                            value={language || 'go'}
+                            onChange={(e) => setLanguage(e.target.value)}
+                            style={{ marginLeft: '5px', padding: '4px', borderRadius: '4px' }}
+                        >
+                            {SUPPORTED_LANGUAGES.map(lang => (
+                                <option key={lang} value={lang}>{lang}</option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            )}
             <CodeEditor code={code} onChange={setCode} language={language} />
 
             <ConfigPanel
@@ -31,8 +47,6 @@ export const CodePresenterCore: React.FC<CodePresenterCoreProps> = ({
                 setConfigList={setConfigList}
                 selectedConfigId={selectedConfigId}
                 setSelectedConfigId={setSelectedConfigId}
-                language={language}
-                setLanguage={setLanguage}
                 showHtml={showHtml}
                 setShowHtml={setShowHtml}
             />

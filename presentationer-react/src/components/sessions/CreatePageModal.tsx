@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { PageKind } from '../../api/session';
 
 interface CreatePageModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (title: string, kind: 'code' | 'chat_thread') => void;
+    onConfirm: (title: string, kind: PageKind) => void;
 }
 
 export const CreatePageModal: React.FC<CreatePageModalProps> = ({ isOpen, onClose, onConfirm }) => {
     const [title, setTitle] = useState('');
-    const [kind, setKind] = useState<'code' | 'chat_thread'>('code');
+    const [kind, setKind] = useState<PageKind>(PageKind.Code);
 
     useEffect(() => {
         if (isOpen) {
             setTitle('');
-            setKind('code');
+            setKind(PageKind.Code);
         }
     }, [isOpen]);
 
@@ -37,9 +38,10 @@ export const CreatePageModal: React.FC<CreatePageModalProps> = ({ isOpen, onClos
                 />
                 <div style={{ marginBottom: '15px' }}>
                     <label style={{ marginRight: '10px' }}>Kind:</label>
-                    <select value={kind} onChange={(e) => setKind(e.target.value as any)} style={{ padding: '4px' }}>
-                        <option value="code">Code Presenter</option>
-                        <option value="chat_thread">Chat Thread</option>
+                    <select value={kind} onChange={(e) => setKind(e.target.value as PageKind)} style={{ padding: '4px' }}>
+                        <option value={PageKind.Code}>Code Presenter</option>
+                        <option value={PageKind.ChatThread}>Chat Thread</option>
+                        <option value={PageKind.Chart}>Chart</option>
                     </select>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

@@ -1,4 +1,10 @@
-export type PageKind = 'code' | 'chat_thread';
+export const PageKind = {
+    Code: 'code',
+    ChatThread: 'chat_thread',
+    Chart: 'chart',
+} as const;
+
+export type PageKind = typeof PageKind[keyof typeof PageKind];
 
 export interface Page {
     id: string;

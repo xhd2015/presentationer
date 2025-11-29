@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MdAdd, MdChat, MdCheck, MdClose, MdDelete, MdDescription, MdSettings, MdEdit } from 'react-icons/md';
-import { type Page } from '../../api/session';
+import { MdAdd, MdChat, MdCheck, MdClose, MdDelete, MdDescription, MdSettings, MdEdit, MdContentCopy, MdInsertChart } from 'react-icons/md';
+import { type Page, PageKind } from '../../api/session';
 
 interface PageListSidebarProps {
     pages: Page[];
@@ -10,6 +10,7 @@ interface PageListSidebarProps {
     onCreateClick: () => void;
     onSettingsClick: () => void;
     onRenamePage?: (id: string, newTitle: string) => Promise<void>;
+    onDuplicatePage?: (id: string) => Promise<void>;
 }
 
 export const PageListSidebar: React.FC<PageListSidebarProps> = ({
@@ -20,6 +21,7 @@ export const PageListSidebar: React.FC<PageListSidebarProps> = ({
     onCreateClick,
     onSettingsClick,
     onRenamePage,
+    onDuplicatePage,
 }) => {
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -103,7 +105,9 @@ export const PageListSidebar: React.FC<PageListSidebarProps> = ({
                             </div>
                         ) : (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', flex: 1 }}>
-                                {p.kind === 'code' ? <MdDescription size={14} /> : <MdChat size={14} />}
+                                {p.kind === PageKind.Code ? <MdDescription size={14} /> :
+                                    p.kind === PageKind.ChatThread ? <MdChat size={14} /> :
+                                        <MdInsertChart size={14} />}
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</span>
                             </div>
                         )}
@@ -127,6 +131,13 @@ export const PageListSidebar: React.FC<PageListSidebarProps> = ({
                                         title="Rename"
                                     >
                                         <MdEdit size={14} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onDuplicatePage?.(p.id); }}
+                                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#bbb', padding: 0 }}
+                                        title="Duplicate"
+                                    >
+                                        <MdContentCopy size={14} />
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(p.id); setEditingId(null); }}

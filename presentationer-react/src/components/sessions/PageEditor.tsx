@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { CodePresenterCore } from '../CodePresenterCore';
 import { IMEditorCore } from '../im/IMEditorCore';
+import { ChartEditorCore } from '../chart/ChartEditorCore';
 import type { CodePresenterState } from '../CodePresenterEditorPreview';
-import { type Page, getAvatarUrl, listAvatars } from '../../api/session';
+import { type Page, getAvatarUrl, listAvatars, PageKind } from '../../api/session';
 
 interface PageEditorProps {
     sessionName: string;
@@ -16,6 +17,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     onPageUpdate
 }) => {
     const [imError, setImError] = useState<string | null>(null);
+    const [chartError, setChartError] = useState<string | null>(null);
 
     const handleResolveAvatarUrl = useCallback((avatarName: string) => {
         return getAvatarUrl(sessionName, avatarName);
@@ -32,7 +34,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
 
     // Validate IM content
     useEffect(() => {
-        if (page.kind === 'chat_thread') {
+        if (page.kind === PageKind.ChatThread) {
             try {
                 const content = page.content;
                 const val = typeof content === 'string' ? content : (content as any).json;
@@ -46,13 +48,30 @@ export const PageEditor: React.FC<PageEditorProps> = ({
             } catch (e: any) {
                 setImError(e.message);
             }
+        } else if (page.kind === PageKind.Chart) {
+            try {
+                const content = page.content;
+                const val = typeof content === 'string' ? content : (content as any).json;
+                if (!val) {
+                    setChartError(null);
+                    return;
+                }
+                const parsed = JSON.parse(val);
+                if (!Array.isArray(parsed)) throw new Error("Input must be a JSON array.");
+                setChartError(null);
+            } catch (e: any) {
+                setChartError(e.message);
+            }
         }
     }, [page.content, page.kind]);
 
     // Code State Helpers
     const codeState = (page.content || {}) as CodePresenterState;
     const updateCodeState = (partial: Partial<CodePresenterState>) => {
-        onPageUpdate?.(page.id, { ...codeState, ...partial });
+        onPageUpdate?.(page.id, (prevContent: any) => {
+            const prevState = (prevContent || {}) as CodePresenterState;
+            return { ...prevState, ...partial };
+        });
     };
 
     const getIMJson = () => {
@@ -63,16 +82,43 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     const handleIMChange = (val: string) => {
         if (!onPageUpdate) return;
 
-        if (typeof page.content === 'object' && page.content !== null) {
-            onPageUpdate(page.id, { ...page.content, json: val });
-        } else {
-            onPageUpdate(page.id, val);
-        }
+        onPageUpdate(page.id, (prevContent: any) => {
+            if (typeof prevContent === 'object' && prevContent !== null) {
+                return { ...prevContent, json: val };
+            } else {
+                return val;
+            }
+        });
+    };
+
+    const getChartJson = () => {
+        if (typeof page.content === 'string') return page.content;
+        return (page.content as any)?.json || '';
+    };
+
+    const getChartType = () => {
+        return (page.content as any)?.chartType || 'line';
+    };
+
+    const handleChartChange = (json: string, type: 'line' | 'bar' | 'pie') => {
+        if (!onPageUpdate) return;
+        onPageUpdate(page.id, (prevContent: any) => {
+            const prevObj = (typeof prevContent === 'object' && prevContent) ? prevContent : {};
+            return { ...prevObj, json, chartType: type };
+        });
+    };
+
+    const handleChartRefresh = () => {
+        if (!onPageUpdate) return;
+        onPageUpdate(page.id, (prevContent: any) => {
+            const prevObj = (typeof prevContent === 'object' && prevContent) ? prevContent : {};
+            return { ...prevObj, refreshKey: (prevObj.refreshKey || 0) + 1 };
+        });
     };
 
     return (
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-            {page.kind === 'code' && (
+            {page.kind === PageKind.Code && (
                 <CodePresenterCore
                     code={codeState.code || ''}
                     setCode={code => updateCodeState({ code })}
@@ -86,13 +132,22 @@ export const PageEditor: React.FC<PageEditorProps> = ({
                     setShowHtml={show => updateCodeState({ showHtml: show })}
                 />
             )}
-            {page.kind === 'chat_thread' && (
+            {page.kind === PageKind.ChatThread && (
                 <IMEditorCore
                     jsonInput={getIMJson()}
                     onChange={handleIMChange}
                     onResolveAvatarUrl={handleResolveAvatarUrl}
                     onListAvatars={handleListAvatars}
                     error={imError}
+                />
+            )}
+            {page.kind === PageKind.Chart && (
+                <ChartEditorCore
+                    jsonInput={getChartJson()}
+                    chartType={getChartType()}
+                    onChange={handleChartChange}
+                    onRefresh={handleChartRefresh}
+                    error={chartError}
                 />
             )}
         </div>

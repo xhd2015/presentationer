@@ -10,7 +10,6 @@ export const useExportPng = (previewRef: React.RefObject<HTMLDivElement | null>,
             const height = heightStr ? parseInt(heightStr, 10) : undefined;
             const dataUrl = await toPng(previewRef.current, {
                 cacheBust: true,
-                backgroundColor: '#1e1e1e',
                 width,
                 height,
                 canvasWidth: width,
@@ -34,11 +33,10 @@ export const useExportPng = (previewRef: React.RefObject<HTMLDivElement | null>,
             const height = heightStr ? parseInt(heightStr, 10) : undefined;
             const dataUrl = await toPng(previewRef.current, {
                 cacheBust: true,
-                backgroundColor: '#1e1e1e',
-                width,
-                height,
-                canvasWidth: width,
-                canvasHeight: height
+                // width,
+                // height,
+                // canvasWidth: width,
+                // canvasHeight: height
             });
             const blob = await (await fetch(dataUrl)).blob();
             await navigator.clipboard.write([
