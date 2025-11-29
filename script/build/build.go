@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/xhd2015/xgo/support/cmd"
 )
@@ -16,6 +17,20 @@ func main() {
 }
 
 func Handle(args []string) error {
+	// check if bun installed
+	if _, err := exec.LookPath("bun"); err != nil {
+		return fmt.Errorf("bun is not installed, install it from https://bun.sh/docs/installation")
+	}
+
+	// check if presentationer-react/node_modules exists
+	if _, err := os.Stat("presentationer-react/node_modules"); err != nil {
+		// run bun install
+		err := cmd.Debug().Dir("presentationer-react").Run("bun", "install")
+		if err != nil {
+			return err
+		}
+	}
+
 	err := cmd.Debug().Dir("presentationer-react").Run("bun", "run", "build")
 	if err != nil {
 		return err
