@@ -19,7 +19,6 @@ import yaml from 'highlight.js/lib/languages/yaml';
 
 import 'highlight.js/styles/vs2015.css';
 import { processHtmlLines, walkAndHighlight, type FocusLineConfig } from './focus';
-import { PreviewContainer } from '../common/PreviewContainer';
 
 hljs.registerLanguage('go', go);
 hljs.registerLanguage('javascript', javascript);
@@ -43,11 +42,9 @@ interface PreviewPanelProps {
     language?: string;
     isFocusMode: boolean;
     focusedLines: FocusLineConfig[];
-    showHtml: boolean;
-    onDimensionsChange: (width: number, height: number) => void;
-    previewRef: React.RefObject<HTMLDivElement | null>;
-    exportWidth?: string;
-    exportHeight?: string;
+    // showHtml handled by parent
+    // dimensions handled by parent
+    // previewRef handled by parent
 }
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
@@ -55,11 +52,6 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     language,
     isFocusMode,
     focusedLines,
-    showHtml,
-    onDimensionsChange,
-    previewRef,
-    exportWidth,
-    exportHeight,
 }) => {
     const codeContentRef = useRef<HTMLElement>(null);
 
@@ -95,45 +87,14 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     }, [code, language, isFocusMode, focusedLines]);
 
     return (
-        <div>
-            <PreviewContainer
-                title="Preview:"
-                onDimensionsChange={onDimensionsChange}
-                containerRef={previewRef}
-                exportWidth={exportWidth}
-                exportHeight={exportHeight}
-                style={{
-                    backgroundColor: '#1e1e1e',
-                }}
-            >
-                <pre style={{ margin: 0, fontSize: '14px', lineHeight: '1.5', minHeight: '100%' }}>
-                    <code ref={codeContentRef} className={`language-${language || 'go'}`} style={{
-                        fontFamily: 'monospace', outline: 'none',
-                        padding: '4px',
-                        paddingLeft: "1px"
-                    }}>
-                        {code}
-                    </code>
-                </pre>
-            </PreviewContainer>
-
-            {showHtml && (
-                <div style={{ marginTop: '20px' }}>
-                    <strong>HTML Output:</strong>
-                    <pre
-                        style={{
-                            background: '#f4f4f4',
-                            padding: '10px',
-                            borderRadius: '4px',
-                            overflow: 'auto',
-                            maxHeight: '200px',
-                            fontSize: '12px',
-                        }}
-                    >
-                        {previewRef.current?.innerHTML}
-                    </pre>
-                </div>
-            )}
-        </div>
+        <pre style={{ margin: 0, fontSize: '14px', lineHeight: '1.5', minHeight: '100%' }}>
+            <code ref={codeContentRef} className={`language-${language || 'go'}`} style={{
+                fontFamily: 'monospace', outline: 'none',
+                padding: '4px',
+                paddingLeft: "1px"
+            }}>
+                {code}
+            </code>
+        </pre>
     );
 };

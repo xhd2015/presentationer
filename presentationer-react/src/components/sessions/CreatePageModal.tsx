@@ -42,6 +42,8 @@ export const CreatePageModal: React.FC<CreatePageModalProps> = ({ isOpen, onClos
                         <option value={PageKind.Code}>Code Presenter</option>
                         <option value={PageKind.ChatThread}>Chat Thread</option>
                         <option value={PageKind.Chart}>Chart</option>
+                        <option value={PageKind.Rectangle}>Rectangle</option>
+                        <option value={PageKind.ConnectedRectangles}>Connected Rectangles</option>
                     </select>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

@@ -6,10 +6,13 @@ import { CreatePageModal } from './CreatePageModal';
 import { PreviewPanel } from '../code-presenter/PreviewPanel';
 import { IMPreview } from '../im/IMPreview';
 import { ChartPreview } from '../chart/ChartPreview';
+import { RectanglePreview } from '../rectangle/RectanglePreview';
+import { ConnectedRectanglesPreview } from '../connected-rectangles/ConnectedRectanglesPreview';
 import { parseLineConfig } from '../code-presenter/focus';
 import { getAvatarUrl, PageKind } from '../../api/session';
 import { ResizableSplitPane } from '../common/ResizableSplitPane';
 import { PreviewControls } from '../common/PreviewControls';
+import { PreviewContainer } from '../common/PreviewContainer';
 
 const SessionDetailContent: React.FC = () => {
     const { pages, createPage, deletePage, sessionName, saveSession, renamePage, updatePageContent, duplicatePage } = useSessionDetailContext();
@@ -18,6 +21,8 @@ const SessionDetailContent: React.FC = () => {
     const location = useLocation();
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const previewRef = useRef<HTMLDivElement>(null);
+    // Force update for HTML preview
+    const [, forceUpdate] = useState({});
 
     const decodedPageTitle = pageTitle ? decodeURIComponent(pageTitle) : undefined;
     const isSettings = location.pathname.endsWith('/settings');
@@ -42,6 +47,11 @@ const SessionDetailContent: React.FC = () => {
                 exportWidth = (selectedPage.content as any).exportWidth;
                 exportHeight = (selectedPage.content as any).exportHeight;
             }
+        } else if (selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles) {
+            if (selectedPage.content && typeof selectedPage.content !== 'string') {
+                exportWidth = (selectedPage.content as any).exportWidth;
+                exportHeight = (selectedPage.content as any).exportHeight;
+            }
         }
     }
 
@@ -49,9 +59,8 @@ const SessionDetailContent: React.FC = () => {
         if (!selectedPage) return;
         let newContent = selectedPage.content;
 
-        if (selectedPage.kind === PageKind.ChatThread && typeof newContent === 'string') {
-            newContent = { json: newContent };
-        } else if (selectedPage.kind === PageKind.Chart && typeof newContent === 'string') {
+        // Ensure content is object
+        if ((selectedPage.kind === PageKind.ChatThread || selectedPage.kind === PageKind.Chart || selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles) && typeof newContent === 'string') {
             newContent = { json: newContent };
         }
 
@@ -71,11 +80,7 @@ const SessionDetailContent: React.FC = () => {
         }
     }, [selectedPage, updatePageContent]);
 
-    const handleIMDimensionsChange = useCallback((w: number, h: number) => {
-        handleDimsChange(w.toString(), h.toString());
-    }, [handleDimsChange]);
-
-    const handleChartDimensionsChange = useCallback((w: number, h: number) => {
+    const handleGenericDimensionsChange = useCallback((w: number, h: number) => {
         handleDimsChange(w.toString(), h.toString());
     }, [handleDimsChange]);
 
@@ -111,6 +116,44 @@ const SessionDetailContent: React.FC = () => {
 
     const handleResolveAvatarUrl = (avatarName: string) => {
         return getAvatarUrl(sessionName, avatarName);
+    };
+
+    const getPreviewTitle = () => {
+        if (!selectedPage) return 'Preview';
+        switch (selectedPage.kind) {
+            case PageKind.Code: return 'Preview:';
+            case PageKind.ChatThread: return 'Preview';
+            case PageKind.Chart:
+                const chartType = (selectedPage.content as any)?.chartType || 'line';
+                return `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`;
+            case PageKind.Rectangle: return 'Rectangle';
+            case PageKind.ConnectedRectangles: return 'Connected Rectangles';
+            default: return 'Preview';
+        }
+    };
+
+    const getPreviewStyle = () => {
+        if (!selectedPage) return undefined;
+        switch (selectedPage.kind) {
+            case PageKind.Code:
+                return { backgroundColor: '#1e1e1e' };
+            case PageKind.Chart:
+                return { padding: '20px', height: 'auto' };
+            case PageKind.Rectangle:
+            case PageKind.ConnectedRectangles:
+                return {
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '20px',
+                    backgroundColor: '#ffffff',
+                    minHeight: '100%'
+                };
+            case PageKind.ChatThread:
+                return undefined;
+            default:
+                return undefined;
+        }
     };
 
     return (
@@ -166,42 +209,70 @@ const SessionDetailContent: React.FC = () => {
                                     exportHeight={exportHeight || ''}
                                     setExportHeight={(h) => handleDimsChange(undefined, h)}
                                 />
-                                {selectedPage.kind === PageKind.Code && (
-                                    <PreviewPanel
-                                        code={(selectedPage.content as any)?.code || ''}
-                                        language={(selectedPage.content as any)?.language}
-                                        isFocusMode={!!(selectedPage.content as any)?.selectedConfigId}
-                                        focusedLines={parseLineConfig(
-                                            ((selectedPage.content as any)?.configList || []).find((c: any) => c.id === (selectedPage.content as any)?.selectedConfigId)?.lines || ''
-                                        )}
-                                        showHtml={(selectedPage.content as any)?.showHtml}
-                                        onDimensionsChange={(w, h) => {
-                                            handleDimsChange(w.toString(), h.toString());
-                                        }}
-                                        previewRef={previewRef}
-                                        exportWidth={exportWidth}
-                                        exportHeight={exportHeight}
-                                    />
-                                )}
-                                {selectedPage.kind === PageKind.ChatThread && (
-                                    <IMPreview
-                                        key={selectedPage.id}
-                                        jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
-                                        onResolveAvatarUrl={handleResolveAvatarUrl}
-                                        exportWidth={exportWidth}
-                                        exportHeight={exportHeight}
-                                        onDimensionsChange={handleIMDimensionsChange}
-                                    />
-                                )}
-                                {selectedPage.kind === PageKind.Chart && (
-                                    <ChartPreview
-                                        key={`${selectedPage.id}-${(selectedPage.content as any)?.refreshKey || 0}`}
-                                        jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
-                                        chartType={(selectedPage.content as any)?.chartType || 'line'}
-                                        exportWidth={exportWidth}
-                                        exportHeight={exportHeight}
-                                        onDimensionsChange={handleChartDimensionsChange}
-                                    />
+                                <PreviewContainer
+                                    title={getPreviewTitle()}
+                                    exportWidth={exportWidth}
+                                    exportHeight={exportHeight}
+                                    onDimensionsChange={handleGenericDimensionsChange}
+                                    containerRef={previewRef}
+                                    style={getPreviewStyle()}
+                                >
+                                    {selectedPage.kind === PageKind.Code && (
+                                        <PreviewPanel
+                                            code={(selectedPage.content as any)?.code || ''}
+                                            language={(selectedPage.content as any)?.language}
+                                            isFocusMode={!!(selectedPage.content as any)?.selectedConfigId}
+                                            focusedLines={parseLineConfig(
+                                                ((selectedPage.content as any)?.configList || []).find((c: any) => c.id === (selectedPage.content as any)?.selectedConfigId)?.lines || ''
+                                            )}
+                                        />
+                                    )}
+                                    {selectedPage.kind === PageKind.ChatThread && (
+                                        <IMPreview
+                                            key={selectedPage.id}
+                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
+                                            onResolveAvatarUrl={handleResolveAvatarUrl}
+                                        />
+                                    )}
+                                    {selectedPage.kind === PageKind.Chart && (
+                                        <ChartPreview
+                                            key={`${selectedPage.id}-${(selectedPage.content as any)?.refreshKey || 0}`}
+                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
+                                            chartType={(selectedPage.content as any)?.chartType || 'line'}
+                                            exportWidth={exportWidth}
+                                            exportHeight={exportHeight}
+                                        />
+                                    )}
+                                    {selectedPage.kind === PageKind.Rectangle && (
+                                        <RectanglePreview
+                                            key={selectedPage.id}
+                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
+                                        />
+                                    )}
+                                    {selectedPage.kind === PageKind.ConnectedRectangles && (
+                                        <ConnectedRectanglesPreview
+                                            key={selectedPage.id}
+                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
+                                        />
+                                    )}
+                                </PreviewContainer>
+                                {selectedPage.kind === PageKind.Code && (selectedPage.content as any)?.showHtml && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <strong>HTML Output:</strong>
+                                        <pre
+                                            style={{
+                                                background: '#f4f4f4',
+                                                padding: '10px',
+                                                borderRadius: '4px',
+                                                overflow: 'auto',
+                                                maxHeight: '200px',
+                                                fontSize: '12px',
+                                            }}
+                                            onClick={() => forceUpdate({})} // Click to update debug view if needed
+                                        >
+                                            {previewRef.current?.innerHTML || 'Click to refresh...'}
+                                        </pre>
+                                    </div>
                                 )}
                             </div>
                         </div>

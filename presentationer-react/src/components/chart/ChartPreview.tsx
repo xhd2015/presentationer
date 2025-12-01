@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { PreviewContainer } from '../common/PreviewContainer';
 
 interface ChartPreviewProps {
     jsonInput: string;
@@ -18,8 +17,6 @@ export const ChartPreview: React.FC<ChartPreviewProps> = ({
     chartType,
     exportWidth,
     exportHeight,
-    onDimensionsChange,
-    previewRef
 }) => {
     const data = useMemo(() => {
         try {
@@ -132,22 +129,12 @@ export const ChartPreview: React.FC<ChartPreviewProps> = ({
     };
 
     return (
-        <PreviewContainer
-            title={`${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`}
-            onDimensionsChange={onDimensionsChange}
-            containerRef={previewRef}
-            exportWidth={exportWidth}
-            exportHeight={exportHeight}
-            style={{ padding: '20px', height: 'auto' }}
-        >
-            <div style={{
-                width: exportWidth ? `${parseInt(exportWidth)}px` : '100%',
-                height: exportHeight ? `${parseInt(exportHeight)}px` : '400px',
-                minWidth: exportWidth ? undefined : '600px',
-            }}>
-                {renderChart()}
-            </div>
-        </PreviewContainer>
+        <div style={{
+            width: exportWidth ? `${parseInt(exportWidth)}px` : '100%',
+            height: exportHeight ? `${parseInt(exportHeight)}px` : '400px',
+            minWidth: exportWidth ? undefined : '600px',
+        }}>
+            {renderChart()}
+        </div>
     );
 };
-

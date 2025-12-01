@@ -119,7 +119,7 @@ export const SessionDetailProvider: React.FC<{ sessionName: string; children: Re
             id: Date.now().toString(),
             title: title,
             kind: kind,
-            content: (kind === PageKind.Code || kind === PageKind.Chart) ? {} : undefined
+            content: (kind === PageKind.Code || kind === PageKind.Chart || kind === PageKind.Rectangle || kind === PageKind.ConnectedRectangles) ? {} : undefined
         };
 
         const updatedPages = [...pages, newPage];

@@ -9,6 +9,7 @@ import { PageDetail } from './components/sessions/PageDetail';
 import { RedirectToFirstPage } from './components/sessions/RedirectToFirstPage';
 import { SessionSettingsPage } from './components/sessions/SessionSettingsPage';
 import { SessionProvider } from './context/SessionContext';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import './App.css';
 
 function Home() {
@@ -41,31 +42,33 @@ function App() {
   return (
     <Router>
       <SessionProvider>
-        <div className="app-container">
-          <Toaster position="top-center" />
-          <nav style={{ padding: '10px 20px', borderBottom: '1px solid #eee', display: 'flex', gap: '20px' }}>
-            <Link to="/">Home</Link>
-            <Link to="/sessions">Sessions</Link>
-            <Link to="/code-presenter">Code Presenter</Link>
-            <Link to="/demo">Demo</Link>
-            <Link to="/im-thread">IM Thread</Link>
-          </nav>
+        <ErrorBoundary>
+          <div className="app-container">
+            <Toaster position="top-center" />
+            <nav style={{ padding: '10px 20px', borderBottom: '1px solid #eee', display: 'flex', gap: '20px' }}>
+              <Link to="/">Home</Link>
+              <Link to="/sessions">Sessions</Link>
+              <Link to="/code-presenter">Code Presenter</Link>
+              <Link to="/demo">Demo</Link>
+              <Link to="/im-thread">IM Thread</Link>
+            </nav>
 
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/sessions" element={<SessionsLayout />}>
-              <Route index element={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#888', flex: 1 }}>Select a session to start</div>} />
-              <Route path=":sessionName" element={<SessionDetailLayout />}>
-                <Route index element={<RedirectToFirstPage />} />
-                <Route path="pages/:pageTitle" element={<PageDetail />} />
-                <Route path="settings" element={<SessionSettingsPage />} />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/sessions" element={<SessionsLayout />}>
+                <Route index element={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#888', flex: 1 }}>Select a session to start</div>} />
+                <Route path=":sessionName" element={<SessionDetailLayout />}>
+                  <Route index element={<RedirectToFirstPage />} />
+                  <Route path="pages/:pageTitle" element={<PageDetail />} />
+                  <Route path="settings" element={<SessionSettingsPage />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="/code-presenter" element={<CodePresenterEditorPreview />} />
-            <Route path="/demo" element={<DemoCode />} />
-            <Route path="/im-thread" element={<IMThreadGenerator />} />
-          </Routes>
-        </div>
+              <Route path="/code-presenter" element={<CodePresenterEditorPreview />} />
+              <Route path="/demo" element={<DemoCode />} />
+              <Route path="/im-thread" element={<IMThreadGenerator />} />
+            </Routes>
+          </div>
+        </ErrorBoundary>
       </SessionProvider>
     </Router>
   );

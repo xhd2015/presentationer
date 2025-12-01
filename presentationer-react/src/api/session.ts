@@ -2,6 +2,8 @@ export const PageKind = {
     Code: 'code',
     ChatThread: 'chat_thread',
     Chart: 'chart',
+    Rectangle: 'rectangle',
+    ConnectedRectangles: 'connected_rectangles',
 } as const;
 
 export type PageKind = typeof PageKind[keyof typeof PageKind];

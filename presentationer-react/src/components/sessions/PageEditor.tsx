@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { CodePresenterCore } from '../CodePresenterCore';
 import { IMEditorCore } from '../im/IMEditorCore';
 import { ChartEditorCore } from '../chart/ChartEditorCore';
+import { RectangleEditorCore } from '../rectangle/RectangleEditorCore';
+import { ConnectedRectanglesEditorCore } from '../connected-rectangles/ConnectedRectanglesEditorCore';
 import type { CodePresenterState } from '../CodePresenterEditorPreview';
 import { type Page, getAvatarUrl, listAvatars, PageKind } from '../../api/session';
 
@@ -18,6 +20,8 @@ export const PageEditor: React.FC<PageEditorProps> = ({
 }) => {
     const [imError, setImError] = useState<string | null>(null);
     const [chartError, setChartError] = useState<string | null>(null);
+    const [rectError, setRectError] = useState<string | null>(null);
+    const [connRectError, setConnRectError] = useState<string | null>(null);
 
     const handleResolveAvatarUrl = useCallback((avatarName: string) => {
         return getAvatarUrl(sessionName, avatarName);
@@ -32,38 +36,32 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         }
     }, [sessionName]);
 
-    // Validate IM content
+    const validateContent = useCallback((p: Page, expectedType: 'array' | 'object') => {
+        try {
+            const content = p.content;
+            const val = typeof content === 'string' ? content : (content as any)?.json;
+            if (!val) return null;
+            const parsed = JSON.parse(val);
+            if (expectedType === 'array' && !Array.isArray(parsed)) return "Input must be a JSON array.";
+            if (expectedType === 'object' && (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null)) return "Input must be a JSON object.";
+            return null;
+        } catch (e: any) {
+            return e.message;
+        }
+    }, []);
+
+    // Validate Content
     useEffect(() => {
         if (page.kind === PageKind.ChatThread) {
-            try {
-                const content = page.content;
-                const val = typeof content === 'string' ? content : (content as any).json;
-                if (!val) {
-                    setImError(null);
-                    return;
-                }
-                const parsed = JSON.parse(val);
-                if (!Array.isArray(parsed)) throw new Error("Input must be a JSON array.");
-                setImError(null);
-            } catch (e: any) {
-                setImError(e.message);
-            }
+            setImError(validateContent(page, 'array'));
         } else if (page.kind === PageKind.Chart) {
-            try {
-                const content = page.content;
-                const val = typeof content === 'string' ? content : (content as any).json;
-                if (!val) {
-                    setChartError(null);
-                    return;
-                }
-                const parsed = JSON.parse(val);
-                if (!Array.isArray(parsed)) throw new Error("Input must be a JSON array.");
-                setChartError(null);
-            } catch (e: any) {
-                setChartError(e.message);
-            }
+            setChartError(validateContent(page, 'array'));
+        } else if (page.kind === PageKind.Rectangle) {
+            setRectError(validateContent(page, 'object'));
+        } else if (page.kind === PageKind.ConnectedRectangles) {
+            setConnRectError(validateContent(page, 'object'));
         }
-    }, [page.content, page.kind]);
+    }, [page.content, page.kind, validateContent]);
 
     // Code State Helpers
     const codeState = (page.content || {}) as CodePresenterState;
@@ -74,26 +72,26 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         });
     };
 
-    const getIMJson = () => {
+    const getJsonContent = () => {
         if (typeof page.content === 'string') return page.content;
-        return (page.content as any)?.json || '';
+        const json = (page.content as any)?.json;
+        if (json !== undefined) return json;
+
+        if (page.kind === PageKind.ChatThread || page.kind === PageKind.Chart) return '[]';
+        if (page.kind === PageKind.Rectangle || page.kind === PageKind.ConnectedRectangles) return '{}';
+        return '';
     };
 
-    const handleIMChange = (val: string) => {
+    const handleJsonChange = (val: string) => {
         if (!onPageUpdate) return;
 
         onPageUpdate(page.id, (prevContent: any) => {
             if (typeof prevContent === 'object' && prevContent !== null) {
                 return { ...prevContent, json: val };
             } else {
-                return val;
+                return { json: val };
             }
         });
-    };
-
-    const getChartJson = () => {
-        if (typeof page.content === 'string') return page.content;
-        return (page.content as any)?.json || '';
     };
 
     const getChartType = () => {
@@ -134,8 +132,8 @@ export const PageEditor: React.FC<PageEditorProps> = ({
             )}
             {page.kind === PageKind.ChatThread && (
                 <IMEditorCore
-                    jsonInput={getIMJson()}
-                    onChange={handleIMChange}
+                    jsonInput={getJsonContent()}
+                    onChange={handleJsonChange}
                     onResolveAvatarUrl={handleResolveAvatarUrl}
                     onListAvatars={handleListAvatars}
                     error={imError}
@@ -143,11 +141,25 @@ export const PageEditor: React.FC<PageEditorProps> = ({
             )}
             {page.kind === PageKind.Chart && (
                 <ChartEditorCore
-                    jsonInput={getChartJson()}
+                    jsonInput={getJsonContent()}
                     chartType={getChartType()}
                     onChange={handleChartChange}
                     onRefresh={handleChartRefresh}
                     error={chartError}
+                />
+            )}
+            {page.kind === PageKind.Rectangle && (
+                <RectangleEditorCore
+                    jsonInput={getJsonContent()}
+                    onChange={handleJsonChange}
+                    error={rectError}
+                />
+            )}
+            {page.kind === PageKind.ConnectedRectangles && (
+                <ConnectedRectanglesEditorCore
+                    jsonInput={getJsonContent()}
+                    onChange={handleJsonChange}
+                    error={connRectError}
                 />
             )}
         </div>

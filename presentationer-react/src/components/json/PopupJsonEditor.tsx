@@ -8,6 +8,7 @@ interface PopupJsonEditorProps {
     onChange: (value: string) => void;
     readOnly?: boolean;
     height?: string | number;
+    schema?: any;
 }
 
 export const PopupJsonEditor: React.FC<PopupJsonEditorProps> = (props) => {

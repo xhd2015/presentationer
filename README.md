@@ -27,9 +27,6 @@ ls ~/.presentationer/
 # Development
 
 ```sh
-# frontend
-(cd presentationer-react && bun run dev)
-
-# server
+# server & frontend hot reload
 go run ./ --dev
 ```
