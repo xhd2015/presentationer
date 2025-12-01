@@ -1,5 +1,6 @@
 import React from 'react';
 import { MdRefresh } from 'react-icons/md';
+import { ChartDataInput } from './ChartDataInput';
 
 export interface ChartEditorCoreProps {
     jsonInput: string;
@@ -29,20 +30,10 @@ export const ChartEditorCore: React.FC<ChartEditorCoreProps> = ({ jsonInput, cha
                     <MdRefresh /> Refresh
                 </button>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <label style={{ marginBottom: '5px' }}>Data (JSON Array):</label>
-                <textarea
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <ChartDataInput
                     value={jsonInput}
-                    onChange={(e) => onChange(e.target.value, chartType)}
-                    style={{
-                        flex: 1,
-                        fontFamily: 'monospace',
-                        padding: '10px',
-                        border: error ? '1px solid red' : '1px solid #ddd',
-                        borderRadius: '4px',
-                        resize: 'none'
-                    }}
-                    placeholder='[{"name": "A", "value": 10}, ...]'
+                    onChange={(val) => onChange(val, chartType)}
                 />
                 {error && <div style={{ color: 'red', marginTop: '5px', fontSize: '12px' }}>{error}</div>}
             </div>

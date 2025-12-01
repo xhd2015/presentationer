@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/xhd2015/presentationer/pkg/model"
 	"github.com/xhd2015/presentationer/pkg/store"
@@ -323,7 +324,13 @@ func handleAvatarGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Detect content type
-	contentType := http.DetectContentType(data)
+	var contentType string
+	if strings.HasSuffix(strings.ToLower(avatarName), ".svg") {
+		contentType = "image/svg+xml"
+	} else {
+		contentType = http.DetectContentType(data)
+	}
+
 	w.Header().Set("Content-Type", contentType)
 	w.Write(data)
 }

@@ -36,7 +36,7 @@ export const ChartPreview: React.FC<ChartPreviewProps> = ({
         if (keys.length === 0) return { xKey: '', valueKey: '', dataKeys: [] };
 
         const x = keys.find(k => k.toLowerCase() === 'name' || k.toLowerCase() === 'label' || k.toLowerCase() === 'x') || keys[0];
-        const d = keys.filter(k => k !== x);
+        const d = keys.filter(k => k !== x && k.toLowerCase() !== 'color' && k.toLowerCase() !== 'fill');
         return { xKey: x, valueKey: d[0], dataKeys: d };
     }, [data]);
 

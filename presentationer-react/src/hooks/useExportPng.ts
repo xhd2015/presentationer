@@ -29,8 +29,8 @@ export const useExportPng = (previewRef: React.RefObject<HTMLDivElement | null>,
     const handleCopyPng = useCallback(async () => {
         if (!previewRef.current) return;
         try {
-            const width = widthStr ? parseInt(widthStr, 10) : undefined;
-            const height = heightStr ? parseInt(heightStr, 10) : undefined;
+            // const width = widthStr ? parseInt(widthStr, 10) : undefined;
+            // const height = heightStr ? parseInt(heightStr, 10) : undefined;
             const dataUrl = await toPng(previewRef.current, {
                 cacheBust: true,
                 // width,

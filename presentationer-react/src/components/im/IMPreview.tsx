@@ -37,14 +37,10 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
     const replies = messages.length > 1 ? messages.slice(1) : [];
     const uniqueSenderCount = useMemo(() => new Set(messages.map(m => m.sender)).size, [messages]);
 
-    const resolveAvatar = (avatar?: string) => {
-        if (!avatar) return null;
-        if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar;
-        return onResolveAvatarUrl ? onResolveAvatarUrl(avatar) : avatar;
-    };
+    const senders = useMemo(() => getSortedSenders(messages), [messages]);
 
     const renderAvatar = (msg: Message) => {
-        const avatarSrc = resolveAvatar(msg.avatar);
+        const avatarSrc = resolveAvatarUrl(msg.avatar, onResolveAvatarUrl);
         return (
             <div className="im-avatar">
                 {avatarSrc ? <img src={avatarSrc} alt={msg.sender} /> : <div className="im-avatar-placeholder">{msg.sender[0]}</div>}
@@ -53,18 +49,6 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
     };
 
     const renderBotTag = (isBot?: boolean) => isBot ? <span className="im-bot-tag">Bot</span> : null;
-
-    const formatMessageContent = (content: string) => {
-        const parts = content.split(/(`[^`]+`|@[a-zA-Z0-9_]+)/g);
-        return parts.map((part, index) => {
-            if (part.startsWith('`') && part.endsWith('`') && part.length > 1) {
-                return <span key={index} className="im-inline-code">{part.slice(1, -1)}</span>;
-            } else if (part.startsWith('@') && part.length > 1) {
-                return <span key={index} className="im-mention">{part}</span>;
-            }
-            return part;
-        });
-    };
 
     const innerStyle = {
         width: `${visualWidth}px`,
@@ -107,7 +91,7 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
                                     <span className="im-time">{rootMessage.sendTime}</span>
                                 </div>
                             </div>
-                            <div className="im-root-content">{formatMessageContent(rootMessage.content)}</div>
+                            <div className="im-root-content">{formatMessageContent(rootMessage.content, senders)}</div>
                             <div className="im-reply-count-divider">{replies.length} replies</div>
                         </div>
                     )}
@@ -121,7 +105,7 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
                                         {renderBotTag(msg.is_bot)}
                                         <span className="im-time">{msg.sendTime}</span>
                                     </div>
-                                    <div className="im-reply-content">{formatMessageContent(msg.content)}</div>
+                                    <div className="im-reply-content">{formatMessageContent(msg.content, senders)}</div>
                                 </div>
                             </div>
                         ))}
@@ -132,3 +116,47 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
     );
 };
 
+function getSortedSenders(messages: Message[]): string[] {
+    const s = new Set<string>();
+    messages.forEach(m => {
+        if (m.sender) s.add(m.sender);
+    });
+    // Sort by length descending to ensure longest match first
+    return Array.from(s).sort((a, b) => b.length - a.length);
+}
+
+function resolveAvatarUrl(avatar: string | undefined, onResolve?: (name: string) => string): string | null {
+    if (!avatar) return null;
+    if (avatar.startsWith('http') || avatar.startsWith('data:')) return avatar;
+    return onResolve ? onResolve(avatar) : avatar;
+}
+
+function formatMessageContent(content: string, senders: string[]) {
+    if (!content) return null;
+
+    const escapedSenders = senders.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+    // Build regex pattern:
+    // 1. Inline code: `...`
+    // 2. Known senders: @Name (longest first)
+    // 3. Generic mentions: @... (fallback)
+    const patterns: string[] = [];
+    patterns.push('`[^`]+`');
+    if (escapedSenders.length > 0) {
+        patterns.push(`@(?:${escapedSenders.join('|')})`);
+    }
+    patterns.push('@[a-zA-Z0-9_]+');
+
+    const regex = new RegExp(`(${patterns.join('|')})`, 'g');
+    const parts = content.split(regex);
+
+    return parts.map((part, index) => {
+        if (!part) return null;
+        if (part.startsWith('`') && part.endsWith('`') && part.length > 1) {
+            return <span key={index} className="im-inline-code">{part.slice(1, -1)}</span>;
+        } else if (part.startsWith('@') && part.length > 1) {
+            return <span key={index} className="im-mention">{part}</span>;
+        }
+        return part;
+    });
+}
