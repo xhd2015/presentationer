@@ -3,17 +3,15 @@ import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { PageListSidebar } from './PageListSidebar';
 import { SessionDetailProvider, useSessionDetailContext } from '../../context/SessionDetailContext';
 import { CreatePageModal } from './CreatePageModal';
-import { PreviewPanel } from '../code-presenter/PreviewPanel';
-import { IMPreview } from '../im/IMPreview';
-import { ChartPreview } from '../chart/ChartPreview';
-import { RectanglePreview } from '../rectangle/RectanglePreview';
-import { ConnectedRectanglesPreview } from '../connected-rectangles/ConnectedRectanglesPreview';
-import { UserFeedbackPreview } from '../user-feedback/UserFeedbackPreview';
-import { parseLineConfig } from '../code-presenter/focus';
 import { getAvatarUrl, PageKind } from '../../api/session';
 import { ResizableSplitPane } from '../common/ResizableSplitPane';
 import { PreviewControls } from '../common/PreviewControls';
 import { PreviewContainer } from '../common/PreviewContainer';
+import { pageRegistry } from './PageRegistry';
+import { registerStandardPages } from './StandardPages';
+
+// Ensure standard pages are registered
+registerStandardPages();
 
 const SessionDetailContent: React.FC = () => {
     const { pages, createPage, deletePage, sessionName, saveSession, renamePage, updatePageContent, duplicatePage } = useSessionDetailContext();
@@ -31,41 +29,25 @@ const SessionDetailContent: React.FC = () => {
     const pageId = selectedPage?.id;
     const showPreview = !isSettings && !!selectedPage;
 
+    const pageDef = selectedPage ? pageRegistry.get(selectedPage.kind) : undefined;
+
     // Extract dims
-    let exportWidth: string | undefined;
-    let exportHeight: string | undefined;
-    if (selectedPage) {
-        if (selectedPage.kind === PageKind.Code) {
-            exportWidth = (selectedPage.content as any).exportWidth;
-            exportHeight = (selectedPage.content as any).exportHeight;
-        } else if (selectedPage.kind === PageKind.ChatThread) {
-            if (selectedPage.content && typeof selectedPage.content !== 'string') {
-                exportWidth = (selectedPage.content as any).exportWidth;
-                exportHeight = (selectedPage.content as any).exportHeight;
-            }
-        } else if (selectedPage.kind === PageKind.Chart) {
-            if (selectedPage.content) {
-                exportWidth = (selectedPage.content as any).exportWidth;
-                exportHeight = (selectedPage.content as any).exportHeight;
-            }
-        } else if (selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles || selectedPage.kind === PageKind.UserFeedback) {
-            if (selectedPage.content && typeof selectedPage.content !== 'string') {
-                exportWidth = (selectedPage.content as any).exportWidth;
-                exportHeight = (selectedPage.content as any).exportHeight;
-            }
-        }
-    }
+    const dims = (selectedPage && pageDef && pageDef.getExportDimensions)
+        ? pageDef.getExportDimensions(selectedPage)
+        : undefined;
+    const exportWidth = dims?.width;
+    const exportHeight = dims?.height;
 
     const handleDimsChange = useCallback((w: string | undefined, h: string | undefined) => {
         if (!selectedPage) return;
         let newContent = selectedPage.content;
 
-        // Ensure content is object
-        if ((selectedPage.kind === PageKind.ChatThread || selectedPage.kind === PageKind.Chart || selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles || selectedPage.kind === PageKind.UserFeedback) && typeof newContent === 'string') {
+        // Ensure content is object (legacy string support)
+        if (typeof newContent === 'string' && selectedPage.kind !== PageKind.Code) {
             newContent = { json: newContent };
         }
 
-        const updatedContent = { ...newContent };
+        const updatedContent = { ...(newContent as any) };
         let changed = false;
         if (w !== undefined && updatedContent.exportWidth !== w) {
             updatedContent.exportWidth = w;
@@ -119,46 +101,6 @@ const SessionDetailContent: React.FC = () => {
         return getAvatarUrl(sessionName, avatarName);
     };
 
-    const getPreviewTitle = () => {
-        if (!selectedPage) return 'Preview';
-        switch (selectedPage.kind) {
-            case PageKind.Code: return 'Preview:';
-            case PageKind.ChatThread: return 'Preview';
-            case PageKind.Chart:
-                const chartType = (selectedPage.content as any)?.chartType || 'line';
-                return `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`;
-            case PageKind.Rectangle: return 'Rectangle';
-            case PageKind.ConnectedRectangles: return 'Connected Rectangles';
-            case PageKind.UserFeedback: return 'User Feedback';
-            default: return 'Preview';
-        }
-    };
-
-    const getPreviewStyle = () => {
-        if (!selectedPage) return undefined;
-        switch (selectedPage.kind) {
-            case PageKind.Code:
-                return { backgroundColor: '#1e1e1e' };
-            case PageKind.Chart:
-                return { padding: '20px', height: 'auto' };
-            case PageKind.Rectangle:
-            case PageKind.ConnectedRectangles:
-            case PageKind.UserFeedback:
-                return {
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    padding: '4px',
-                    backgroundColor: '#ffffff',
-                    minHeight: '100%'
-                };
-            case PageKind.ChatThread:
-                return undefined;
-            default:
-                return undefined;
-        }
-    };
-
     return (
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             <PageListSidebar
@@ -203,7 +145,7 @@ const SessionDetailContent: React.FC = () => {
                 </div>
                 <ResizableSplitPane
                     left={<Outlet context={{ previewRef }} />}
-                    right={showPreview ? (
+                    right={showPreview && selectedPage && pageDef ? (
                         <div style={{
                             flex: 1, overflow: 'auto',
                             padding: '20px',
@@ -217,69 +159,19 @@ const SessionDetailContent: React.FC = () => {
                                     setExportHeight={(h) => handleDimsChange(undefined, h)}
                                 />
                                 <PreviewContainer
-                                    title={getPreviewTitle()}
+                                    title={pageDef.getPreviewTitle(selectedPage)}
                                     exportWidth={exportWidth}
                                     exportHeight={exportHeight}
                                     onDimensionsChange={handleGenericDimensionsChange}
                                     containerRef={previewRef}
-                                    style={getPreviewStyle()}
+                                    style={pageDef.getPreviewStyle(selectedPage)}
                                 >
-                                    {selectedPage.kind === PageKind.Code && (
-                                        <PreviewPanel
-                                            code={(selectedPage.content as any)?.code || ''}
-                                            language={(selectedPage.content as any)?.language}
-                                            isFocusMode={!!(selectedPage.content as any)?.selectedConfigId}
-                                            focusedLines={parseLineConfig(
-                                                ((selectedPage.content as any)?.configList || []).find((c: any) => c.id === (selectedPage.content as any)?.selectedConfigId)?.lines || ''
-                                            )}
-                                        />
-                                    )}
-                                    {selectedPage.kind === PageKind.ChatThread && (
-                                        <IMPreview
-                                            key={selectedPage.id}
-                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
-                                            onResolveAvatarUrl={handleResolveAvatarUrl}
-                                        />
-                                    )}
-                                    {selectedPage.kind === PageKind.Chart && (
-                                        <ChartPreview
-                                            key={`${selectedPage.id}-${(selectedPage.content as any)?.refreshKey || 0}`}
-                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
-                                            chartType={(selectedPage.content as any)?.chartType || 'line'}
-                                            exportWidth={exportWidth}
-                                            exportHeight={exportHeight}
-                                        />
-                                    )}
-                                    {selectedPage.kind === PageKind.Rectangle && (
-                                        <RectanglePreview
-                                            key={selectedPage.id}
-                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
-                                        />
-                                    )}
-                                    {selectedPage.kind === PageKind.ConnectedRectangles && (
-                                        <ConnectedRectanglesPreview
-                                            key={selectedPage.id}
-                                            jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
-                                        />
-                                    )}
-                                    {selectedPage.kind === PageKind.UserFeedback && (
-                                        <UserFeedbackPreview
-                                            items={(() => {
-                                                try {
-                                                    const json = typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || '{}';
-                                                    const parsed = JSON.parse(json);
-                                                    return Array.isArray(parsed) ? parsed : (parsed.items || []);
-                                                } catch (e) { return []; }
-                                            })()}
-                                            fontSizeMultiplier={(() => {
-                                                try {
-                                                    const json = typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || '{}';
-                                                    const parsed = JSON.parse(json);
-                                                    return Array.isArray(parsed) ? 1 : (parsed.fontSizeMultiplier || 1);
-                                                } catch (e) { return 1; }
-                                            })()}
-                                        />
-                                    )}
+                                    {pageDef.renderPreview({
+                                        page: selectedPage,
+                                        resolveAvatarUrl: handleResolveAvatarUrl,
+                                        onDimensionsChange: handleGenericDimensionsChange,
+                                        previewRef
+                                    })}
                                 </PreviewContainer>
                                 {selectedPage.kind === PageKind.Code && (selectedPage.content as any)?.showHtml && (
                                     <div style={{ marginTop: '20px' }}>
