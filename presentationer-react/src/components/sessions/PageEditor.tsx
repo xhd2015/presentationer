@@ -4,6 +4,7 @@ import { IMEditorCore } from '../im/IMEditorCore';
 import { ChartEditorCore } from '../chart/ChartEditorCore';
 import { RectangleEditorCore } from '../rectangle/RectangleEditorCore';
 import { ConnectedRectanglesEditorCore } from '../connected-rectangles/ConnectedRectanglesEditorCore';
+import { UserFeedbackEditorCore } from '../user-feedback/UserFeedbackEditorCore';
 import type { CodePresenterState } from '../CodePresenterEditorPreview';
 import { type Page, getAvatarUrl, listAvatars, PageKind } from '../../api/session';
 
@@ -22,6 +23,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
     const [chartError, setChartError] = useState<string | null>(null);
     const [rectError, setRectError] = useState<string | null>(null);
     const [connRectError, setConnRectError] = useState<string | null>(null);
+    const [userFeedbackError, setUserFeedbackError] = useState<string | null>(null);
 
     const handleResolveAvatarUrl = useCallback((avatarName: string) => {
         return getAvatarUrl(sessionName, avatarName);
@@ -60,6 +62,8 @@ export const PageEditor: React.FC<PageEditorProps> = ({
             setRectError(validateContent(page, 'object'));
         } else if (page.kind === PageKind.ConnectedRectangles) {
             setConnRectError(validateContent(page, 'object'));
+        } else if (page.kind === PageKind.UserFeedback) {
+            setUserFeedbackError(validateContent(page, 'object'));
         }
     }, [page.content, page.kind, validateContent]);
 
@@ -78,6 +82,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({
         if (json !== undefined) return json;
 
         if (page.kind === PageKind.ChatThread || page.kind === PageKind.Chart) return '[]';
+        if (page.kind === PageKind.UserFeedback) return '{}';
         if (page.kind === PageKind.Rectangle || page.kind === PageKind.ConnectedRectangles) return '{}';
         return '';
     };
@@ -160,6 +165,13 @@ export const PageEditor: React.FC<PageEditorProps> = ({
                     jsonInput={getJsonContent()}
                     onChange={handleJsonChange}
                     error={connRectError}
+                />
+            )}
+            {page.kind === PageKind.UserFeedback && (
+                <UserFeedbackEditorCore
+                    jsonInput={getJsonContent()}
+                    onChange={handleJsonChange}
+                    error={userFeedbackError}
                 />
             )}
         </div>

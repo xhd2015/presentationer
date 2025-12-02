@@ -157,13 +157,14 @@
     font-size: 1.1em;
     line-height: 1.5;
     color: #1d1d1d;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
+    white-space: pre-wrap;
 }
 
 .im-reply-count-divider {
     font-size: 0.85em;
     color: #666;
-    margin: 10px 0;
+    margin: 5px 0 10px 0;
     display: flex;
     align-items: center;
 }
@@ -233,6 +234,14 @@
     font-size: 0.95em;
     color: #333;
     line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+.im-message-divider {
+    height: 1px;
+    background-color: #eee;
+    margin-top: 12px;
+    width: 100%;
 }
 
 /* Shared Avatar */

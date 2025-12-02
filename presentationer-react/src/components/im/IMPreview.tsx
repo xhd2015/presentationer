@@ -81,6 +81,7 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
                                     <span className="im-time">{msg.sendTime}</span>
                                 </div>
                                 <div className="im-reply-content">{formatMessageContent(msg.content, senders)}</div>
+                                {index < replies.length - 1 && <div className="im-message-divider"></div>}
                             </div>
                         </div>
                     ))}

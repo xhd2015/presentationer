@@ -42,9 +42,11 @@ interface PreviewPanelProps {
     language?: string;
     isFocusMode: boolean;
     focusedLines: FocusLineConfig[];
-    // showHtml handled by parent
-    // dimensions handled by parent
-    // previewRef handled by parent
+    showHtml?: boolean;
+    onDimensionsChange?: (width: number, height: number) => void;
+    previewRef?: React.RefObject<HTMLDivElement>;
+    exportWidth?: string;
+    exportHeight?: string;
 }
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({

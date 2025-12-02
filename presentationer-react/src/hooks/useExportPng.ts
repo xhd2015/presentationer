@@ -2,19 +2,36 @@ import { useCallback } from 'react';
 import { toPng } from 'html-to-image';
 import toast from 'react-hot-toast';
 
-export const useExportPng = (previewRef: React.RefObject<HTMLDivElement | null>, widthStr?: string, heightStr?: string) => {
+async function generatePng(element: HTMLElement, width?: number, height?: number) {
+    // Inject style to hide scrollbars during export
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = '::-webkit-scrollbar { display: none !important; }';
+    document.head.appendChild(styleEl);
+
+    try {
+        return await toPng(element, {
+            cacheBust: true,
+            width,
+            height,
+            canvasWidth: width,
+            canvasHeight: height,
+            style: {
+                overflow: 'hidden',
+            }
+        });
+    } finally {
+        document.head.removeChild(styleEl);
+    }
+}
+
+export function useExportPng(previewRef: React.RefObject<HTMLDivElement | null>, widthStr?: string, heightStr?: string) {
     const handleExportPng = useCallback(async () => {
         if (!previewRef.current) return;
         try {
             const width = widthStr ? parseInt(widthStr, 10) : undefined;
             const height = heightStr ? parseInt(heightStr, 10) : undefined;
-            const dataUrl = await toPng(previewRef.current, {
-                cacheBust: true,
-                width,
-                height,
-                canvasWidth: width,
-                canvasHeight: height
-            });
+
+            const dataUrl = await generatePng(previewRef.current, width, height);
             const link = document.createElement('a');
             link.download = 'code-snippet.png';
             link.href = dataUrl;
@@ -31,13 +48,7 @@ export const useExportPng = (previewRef: React.RefObject<HTMLDivElement | null>,
         try {
             // const width = widthStr ? parseInt(widthStr, 10) : undefined;
             // const height = heightStr ? parseInt(heightStr, 10) : undefined;
-            const dataUrl = await toPng(previewRef.current, {
-                cacheBust: true,
-                // width,
-                // height,
-                // canvasWidth: width,
-                // canvasHeight: height
-            });
+            const dataUrl = await generatePng(previewRef.current);
             const blob = await (await fetch(dataUrl)).blob();
             await navigator.clipboard.write([
                 new ClipboardItem({
@@ -49,8 +60,7 @@ export const useExportPng = (previewRef: React.RefObject<HTMLDivElement | null>,
             console.error('Failed to copy PNG', err);
             toast.error('Failed to copy image.');
         }
-    }, [previewRef, widthStr, heightStr]);
+    }, [previewRef]);
 
     return { handleExportPng, handleCopyPng };
-};
-
+}

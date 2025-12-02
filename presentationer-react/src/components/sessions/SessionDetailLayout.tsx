@@ -8,6 +8,7 @@ import { IMPreview } from '../im/IMPreview';
 import { ChartPreview } from '../chart/ChartPreview';
 import { RectanglePreview } from '../rectangle/RectanglePreview';
 import { ConnectedRectanglesPreview } from '../connected-rectangles/ConnectedRectanglesPreview';
+import { UserFeedbackPreview } from '../user-feedback/UserFeedbackPreview';
 import { parseLineConfig } from '../code-presenter/focus';
 import { getAvatarUrl, PageKind } from '../../api/session';
 import { ResizableSplitPane } from '../common/ResizableSplitPane';
@@ -47,7 +48,7 @@ const SessionDetailContent: React.FC = () => {
                 exportWidth = (selectedPage.content as any).exportWidth;
                 exportHeight = (selectedPage.content as any).exportHeight;
             }
-        } else if (selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles) {
+        } else if (selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles || selectedPage.kind === PageKind.UserFeedback) {
             if (selectedPage.content && typeof selectedPage.content !== 'string') {
                 exportWidth = (selectedPage.content as any).exportWidth;
                 exportHeight = (selectedPage.content as any).exportHeight;
@@ -60,7 +61,7 @@ const SessionDetailContent: React.FC = () => {
         let newContent = selectedPage.content;
 
         // Ensure content is object
-        if ((selectedPage.kind === PageKind.ChatThread || selectedPage.kind === PageKind.Chart || selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles) && typeof newContent === 'string') {
+        if ((selectedPage.kind === PageKind.ChatThread || selectedPage.kind === PageKind.Chart || selectedPage.kind === PageKind.Rectangle || selectedPage.kind === PageKind.ConnectedRectangles || selectedPage.kind === PageKind.UserFeedback) && typeof newContent === 'string') {
             newContent = { json: newContent };
         }
 
@@ -128,6 +129,7 @@ const SessionDetailContent: React.FC = () => {
                 return `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`;
             case PageKind.Rectangle: return 'Rectangle';
             case PageKind.ConnectedRectangles: return 'Connected Rectangles';
+            case PageKind.UserFeedback: return 'User Feedback';
             default: return 'Preview';
         }
     };
@@ -141,11 +143,12 @@ const SessionDetailContent: React.FC = () => {
                 return { padding: '20px', height: 'auto' };
             case PageKind.Rectangle:
             case PageKind.ConnectedRectangles:
+            case PageKind.UserFeedback:
                 return {
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    padding: '20px',
+                    padding: '4px',
                     backgroundColor: '#ffffff',
                     minHeight: '100%'
                 };
@@ -201,7 +204,11 @@ const SessionDetailContent: React.FC = () => {
                 <ResizableSplitPane
                     left={<Outlet context={{ previewRef }} />}
                     right={showPreview ? (
-                        <div style={{ flex: 1, overflow: 'auto', padding: '20px', backgroundColor: '#f9f9f9', display: 'flex' }}>
+                        <div style={{
+                            flex: 1, overflow: 'auto',
+                            padding: '20px',
+                            backgroundColor: '#f9f9f9', display: 'flex'
+                        }}>
                             <div style={{ margin: '0 auto', width: 'fit-content', maxWidth: '100%' }}>
                                 <PreviewControls
                                     exportWidth={exportWidth || ''}
@@ -253,6 +260,24 @@ const SessionDetailContent: React.FC = () => {
                                         <ConnectedRectanglesPreview
                                             key={selectedPage.id}
                                             jsonInput={typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || ''}
+                                        />
+                                    )}
+                                    {selectedPage.kind === PageKind.UserFeedback && (
+                                        <UserFeedbackPreview
+                                            items={(() => {
+                                                try {
+                                                    const json = typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || '{}';
+                                                    const parsed = JSON.parse(json);
+                                                    return Array.isArray(parsed) ? parsed : (parsed.items || []);
+                                                } catch (e) { return []; }
+                                            })()}
+                                            fontSizeMultiplier={(() => {
+                                                try {
+                                                    const json = typeof selectedPage.content === 'string' ? selectedPage.content : (selectedPage.content as any)?.json || '{}';
+                                                    const parsed = JSON.parse(json);
+                                                    return Array.isArray(parsed) ? 1 : (parsed.fontSizeMultiplier || 1);
+                                                } catch (e) { return 1; }
+                                            })()}
                                         />
                                     )}
                                 </PreviewContainer>

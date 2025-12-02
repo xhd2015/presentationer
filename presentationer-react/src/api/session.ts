@@ -4,6 +4,7 @@ export const PageKind = {
     Chart: 'chart',
     Rectangle: 'rectangle',
     ConnectedRectangles: 'connected_rectangles',
+    UserFeedback: 'user_feedback',
 } as const;
 
 export type PageKind = typeof PageKind[keyof typeof PageKind];
