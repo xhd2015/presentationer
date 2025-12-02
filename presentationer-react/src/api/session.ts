@@ -5,6 +5,7 @@ export const PageKind = {
     Rectangle: 'rectangle',
     ConnectedRectangles: 'connected_rectangles',
     UserFeedback: 'user_feedback',
+    StructureBreakdown: 'structure_breakdown',
 } as const;
 
 export type PageKind = typeof PageKind[keyof typeof PageKind];

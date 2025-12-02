@@ -9,11 +9,21 @@ export interface PageRendererProps {
     previewRef?: React.RefObject<HTMLDivElement | null>;
 }
 
+export interface PageEditorContext {
+    page: Page;
+    sessionName: string;
+    onPageUpdate: (pageId: string, content: any) => void;
+    error: string | null;
+}
+
 export interface PageDefinition {
     kind: PageKind;
+    label: string;
     getPreviewTitle: (page: Page) => string;
     getPreviewStyle: (page: Page) => React.CSSProperties | undefined;
     renderPreview: (props: PageRendererProps) => React.ReactNode;
+    renderEditor: (props: PageEditorContext) => React.ReactNode;
+    validateContent?: (page: Page) => string | null;
     getExportDimensions: (page: Page) => { width?: string; height?: string } | undefined;
 }
 

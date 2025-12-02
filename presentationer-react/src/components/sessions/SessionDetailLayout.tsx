@@ -8,10 +8,7 @@ import { ResizableSplitPane } from '../common/ResizableSplitPane';
 import { PreviewControls } from '../common/PreviewControls';
 import { PreviewContainer } from '../common/PreviewContainer';
 import { pageRegistry } from './PageRegistry';
-import { registerStandardPages } from './StandardPages';
-
-// Ensure standard pages are registered
-registerStandardPages();
+import './StandardPages';
 
 const SessionDetailContent: React.FC = () => {
     const { pages, createPage, deletePage, sessionName, saveSession, renamePage, updatePageContent, duplicatePage } = useSessionDetailContext();

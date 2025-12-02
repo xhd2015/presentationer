@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PageKind } from '../../api/session';
+import { pageRegistry } from './PageRegistry';
+import './StandardPages';
 
 interface CreatePageModalProps {
     isOpen: boolean;
@@ -24,6 +26,8 @@ export const CreatePageModal: React.FC<CreatePageModalProps> = ({ isOpen, onClos
         onConfirm(title, kind);
     };
 
+    const pageDefinitions = pageRegistry.getAll();
+
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '300px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
@@ -39,12 +43,11 @@ export const CreatePageModal: React.FC<CreatePageModalProps> = ({ isOpen, onClos
                 <div style={{ marginBottom: '15px' }}>
                     <label style={{ marginRight: '10px' }}>Kind:</label>
                     <select value={kind} onChange={(e) => setKind(e.target.value as PageKind)} style={{ padding: '4px' }}>
-                        <option value={PageKind.Code}>Code Presenter</option>
-                        <option value={PageKind.ChatThread}>Chat Thread</option>
-                        <option value={PageKind.Chart}>Chart</option>
-                        <option value={PageKind.Rectangle}>Rectangle</option>
-                        <option value={PageKind.ConnectedRectangles}>Connected Rectangles</option>
-                        <option value={PageKind.UserFeedback}>User Feedback</option>
+                        {pageDefinitions.map(def => (
+                            <option key={def.kind} value={def.kind}>
+                                {def.label}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -55,4 +58,3 @@ export const CreatePageModal: React.FC<CreatePageModalProps> = ({ isOpen, onClos
         </div>
     );
 };
-
