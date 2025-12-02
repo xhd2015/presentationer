@@ -15,6 +15,8 @@ import (
 	"github.com/xhd2015/presentationer/pkg/model"
 )
 
+const ConfigDirName = ".presentationer"
+
 type SessionContent struct {
 	Pages []model.Page `json:"pages"`
 }
@@ -26,13 +28,6 @@ type FileSessionStore struct {
 
 func New(rootDir string) *FileSessionStore {
 	return &FileSessionStore{RootDir: rootDir}
-}
-
-func (s *FileSessionStore) ensureDirs() error {
-	if err := os.MkdirAll(s.RootDir, 0755); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *FileSessionStore) getSessionDir(name string) string {
@@ -52,10 +47,6 @@ func (s *FileSessionStore) getAvatarPath(sessionName, avatarName string) string 
 }
 
 func (s *FileSessionStore) List(ctx context.Context) ([]model.Session, error) {
-	if err := s.ensureDirs(); err != nil {
-		return nil, err
-	}
-
 	entries, err := os.ReadDir(s.RootDir)
 	if err != nil {
 		return nil, err
@@ -68,6 +59,13 @@ func (s *FileSessionStore) List(ctx context.Context) ([]model.Session, error) {
 		}
 
 		name := entry.Name()
+
+		// Check if .presentationer exists
+		configPath := filepath.Join(s.RootDir, name, ConfigDirName)
+		if _, err := os.Stat(configPath); err != nil {
+			continue
+		}
+
 		pagesDir := s.getPagesDir(name)
 
 		var modTime time.Time
@@ -94,10 +92,6 @@ func (s *FileSessionStore) List(ctx context.Context) ([]model.Session, error) {
 }
 
 func (s *FileSessionStore) Get(ctx context.Context, name string) (*model.Session, error) {
-	if err := s.ensureDirs(); err != nil {
-		return nil, err
-	}
-
 	pages, err := s.readPagesFromDir(name)
 	if err != nil {
 		return nil, err
@@ -117,16 +111,18 @@ func (s *FileSessionStore) Get(ctx context.Context, name string) (*model.Session
 }
 
 func (s *FileSessionStore) Create(ctx context.Context, session *model.Session) error {
-	if err := s.ensureDirs(); err != nil {
-		return err
-	}
-
 	sessionDir := s.getSessionDir(session.Name)
 	if _, err := os.Stat(sessionDir); err == nil {
 		return fmt.Errorf("session already exists")
 	}
 
 	if err := os.MkdirAll(sessionDir, 0755); err != nil {
+		return err
+	}
+
+	// Create marker file
+	markerPath := filepath.Join(sessionDir, ConfigDirName)
+	if err := os.WriteFile(markerPath, []byte{}, 0644); err != nil {
 		return err
 	}
 
@@ -142,9 +138,6 @@ func (s *FileSessionStore) Create(ctx context.Context, session *model.Session) e
 }
 
 func (s *FileSessionStore) Update(ctx context.Context, session *model.Session) error {
-	if err := s.ensureDirs(); err != nil {
-		return err
-	}
 	sessionDir := s.getSessionDir(session.Name)
 	if err := os.MkdirAll(sessionDir, 0755); err != nil {
 		return err
@@ -157,9 +150,6 @@ func (s *FileSessionStore) Update(ctx context.Context, session *model.Session) e
 }
 
 func (s *FileSessionStore) Rename(ctx context.Context, oldName, newName string) error {
-	if err := s.ensureDirs(); err != nil {
-		return err
-	}
 	oldPath := s.getSessionDir(oldName)
 	newPath := s.getSessionDir(newName)
 
@@ -171,10 +161,6 @@ func (s *FileSessionStore) Rename(ctx context.Context, oldName, newName string) 
 }
 
 func (s *FileSessionStore) Delete(ctx context.Context, name string) error {
-	if err := s.ensureDirs(); err != nil {
-		return err
-	}
-
 	sessionDir := s.getSessionDir(name)
 	return os.RemoveAll(sessionDir)
 }

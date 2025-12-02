@@ -25,7 +25,9 @@ export const JSONEditor: React.FC<JSONEditorProps> = ({
     const editorPath = useMemo(() => `json-editor-${Math.random().toString(36).substr(2, 9)}.json`, []);
 
     useEffect(() => {
-        setLocalValue(value);
+        if (value !== localValue) {
+            setLocalValue(value);
+        }
     }, [value]);
 
     const handleEditorChange = (newValue: string | undefined) => {

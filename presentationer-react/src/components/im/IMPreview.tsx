@@ -20,7 +20,7 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
         try {
             const parsed = JSON.parse(jsonInput);
             if (!Array.isArray(parsed)) return [];
-            return parsed;
+            return parsed.filter(m => m && typeof m === 'object');
         } catch {
             return [];
         }
@@ -33,10 +33,12 @@ export const IMPreview: React.FC<IMPreviewProps> = ({
     const senders = useMemo(() => getSortedSenders(messages), [messages]);
 
     const renderAvatar = (msg: Message) => {
+        if (!msg) return null;
         const avatarSrc = resolveAvatarUrl(msg.avatar, onResolveAvatarUrl);
+        const senderName = msg.sender || '?';
         return (
             <div className="im-avatar">
-                {avatarSrc ? <img src={avatarSrc} alt={msg.sender} /> : <div className="im-avatar-placeholder">{msg.sender[0]}</div>}
+                {avatarSrc ? <img src={avatarSrc} alt={senderName} /> : <div className="im-avatar-placeholder">{senderName[0]}</div>}
             </div>
         );
     };

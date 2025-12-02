@@ -14,21 +14,15 @@ import (
 	"github.com/xhd2015/presentationer/pkg/store/file"
 )
 
-const (
-	configDirName   = ".presentationer"
-	sessionsDirName = "sessions"
-)
-
 // Global store instance
 var sessionStore store.SessionStore
 
 func InitSessionStore() error {
-	home, err := os.UserHomeDir()
+	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	rootDir := filepath.Join(home, configDirName, sessionsDirName)
-	sessionStore = file.New(rootDir)
+	sessionStore = file.New(wd)
 	return nil
 }
 

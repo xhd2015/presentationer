@@ -43,9 +43,6 @@ func EnsureFrontendDevServer(ctx context.Context) (chan struct{}, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// Set process group ID so we can kill the whole tree
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
 	err := cmd.Start()
 	if err != nil {
 		return nil, fmt.Errorf("failed to start frontend dev server: %v", err)
@@ -59,7 +56,7 @@ func EnsureFrontendDevServer(ctx context.Context) (chan struct{}, error) {
 		if cmd.Process != nil {
 			fmt.Println("Stopping frontend dev server...")
 			// Kill the process group
-			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			cmd.Process.Kill()
 		}
 	}()
 

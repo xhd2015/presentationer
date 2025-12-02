@@ -20,6 +20,7 @@ export const PageDetail: React.FC = () => {
 
     return (
         <PageEditor
+            key={selectedPage.id}
             sessionName={sessionName}
             page={selectedPage}
             onPageUpdate={updatePageContent}

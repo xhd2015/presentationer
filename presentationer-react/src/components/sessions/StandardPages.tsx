@@ -10,6 +10,9 @@ import { RectanglePreview } from '../rectangle/RectanglePreview';
 import { ConnectedRectanglesPreview } from '../connected-rectangles/ConnectedRectanglesPreview';
 import { UserFeedbackPreview } from '../user-feedback/UserFeedbackPreview';
 import { StructureBreakdownPreview } from '../structure/StructureBreakdownPreview';
+import { StatsPreview } from '../stats/StatsPreview';
+import { NumberedListPreview } from '../numbered-list/NumberedListPreview';
+import { ConceptCardPreview } from '../concept-card/ConceptCardPreview';
 import { parseLineConfig } from '../code-presenter/focus';
 
 import { CodePresenterCore } from '../CodePresenterCore';
@@ -19,6 +22,9 @@ import { RectangleEditorCore } from '../rectangle/RectangleEditorCore';
 import { ConnectedRectanglesEditorCore } from '../connected-rectangles/ConnectedRectanglesEditorCore';
 import { UserFeedbackEditorCore } from '../user-feedback/UserFeedbackEditorCore';
 import { StructureBreakdownEditorCore } from '../structure/StructureBreakdownEditorCore';
+import { StatsEditorCore } from '../stats/StatsEditorCore';
+import { NumberedListEditorCore } from '../numbered-list/NumberedListEditorCore';
+import { ConceptCardEditorCore } from '../concept-card/ConceptCardEditorCore';
 import type { CodePresenterState } from '../CodePresenterEditorPreview';
 
 // --- Helpers ---
@@ -314,6 +320,99 @@ const StructureBreakdownPage: PageDefinition = {
     )
 };
 
+// Stats Page
+const StatsPage: PageDefinition = {
+    kind: PageKind.Stats,
+    label: 'Stats',
+    getPreviewTitle: () => 'Stats',
+    getPreviewStyle: () => ({ padding: '20px', backgroundColor: 'transparent', minHeight: '100%', overflow: 'auto' }),
+    getExportDimensions: getStandardExportDimensions,
+    validateContent: (page) => validateJsonContent(page, 'object'),
+    renderPreview: ({ page }) => {
+        const content = (() => {
+            try {
+                const json = typeof page.content === 'string' ? page.content : (page.content as any)?.json || '{}';
+                return JSON.parse(json);
+            } catch (e) { return {}; }
+        })();
+        return (
+            <StatsPreview
+                items={content.items || []}
+                columns={content.columns}
+            />
+        );
+    },
+    renderEditor: ({ page, onPageUpdate, error }) => (
+        <StatsEditorCore
+            jsonInput={getJsonContent(page, '{}')}
+            onChange={(val) => handleJsonChange(page, onPageUpdate, val)}
+            error={error}
+        />
+    )
+};
+
+// Numbered List Page
+const NumberedListPage: PageDefinition = {
+    kind: PageKind.NumberedList,
+    label: 'Numbered List',
+    getPreviewTitle: () => 'Numbered List',
+    getPreviewStyle: () => ({ padding: '20px', backgroundColor: 'transparent', minHeight: '100%', overflow: 'auto' }),
+    getExportDimensions: getStandardExportDimensions,
+    validateContent: (page) => validateJsonContent(page, 'object'),
+    renderPreview: ({ page }) => {
+        const content = (() => {
+            try {
+                const json = typeof page.content === 'string' ? page.content : (page.content as any)?.json || '{}';
+                return JSON.parse(json);
+            } catch (e) { return {}; }
+        })();
+        return (
+            <NumberedListPreview
+                items={content.items || []}
+                columns={content.columns}
+            />
+        );
+    },
+    renderEditor: ({ page, onPageUpdate, error }) => (
+        <NumberedListEditorCore
+            jsonInput={getJsonContent(page, '{}')}
+            onChange={(val) => handleJsonChange(page, onPageUpdate, val)}
+            error={error}
+        />
+    )
+};
+
+// Concept Card Page
+const ConceptCardPage: PageDefinition = {
+    kind: PageKind.ConceptCard,
+    label: 'Concept Card',
+    getPreviewTitle: () => 'Concept Card',
+    getPreviewStyle: () => ({ padding: '20px', backgroundColor: 'transparent', minHeight: '100%', overflow: 'auto' }),
+    getExportDimensions: getStandardExportDimensions,
+    validateContent: (page) => validateJsonContent(page, 'object'),
+    renderPreview: ({ page }) => {
+        const content = (() => {
+            try {
+                const json = typeof page.content === 'string' ? page.content : (page.content as any)?.json || '{}';
+                return JSON.parse(json);
+            } catch (e) { return {}; }
+        })();
+        return (
+            <ConceptCardPreview
+                items={content.items || []}
+                columns={content.columns}
+            />
+        );
+    },
+    renderEditor: ({ page, onPageUpdate, error }) => (
+        <ConceptCardEditorCore
+            jsonInput={getJsonContent(page, '{}')}
+            onChange={(val) => handleJsonChange(page, onPageUpdate, val)}
+            error={error}
+        />
+    )
+};
+
 // Register all
 function registerStandardPages() {
     pageRegistry.register(CodePage);
@@ -323,6 +422,9 @@ function registerStandardPages() {
     pageRegistry.register(ConnectedRectanglesPage);
     pageRegistry.register(UserFeedbackPage);
     pageRegistry.register(StructureBreakdownPage);
+    pageRegistry.register(StatsPage);
+    pageRegistry.register(NumberedListPage);
+    pageRegistry.register(ConceptCardPage);
 }
 
 // Execute registration

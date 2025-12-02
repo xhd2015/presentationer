@@ -11,10 +11,6 @@ import (
 )
 
 func (s *FileSessionStore) CreatePage(ctx context.Context, sessionName string, page *model.Page) error {
-	if err := s.ensureDirs(); err != nil {
-		return err
-	}
-
 	pages, err := s.readPagesFromDir(sessionName)
 	if err != nil {
 		return err
